@@ -57,5 +57,6 @@ export interface BookingRequest {
   total_price: number;
   status: "pending" | "confirmed" | "cancelled" | "completed";
   message?: string;
+  admin_notes?: string;
   created_at: string;
 }

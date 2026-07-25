@@ -5,16 +5,25 @@ import FeaturedVillas from "@/components/home/FeaturedVillas";
 import Destinations from "@/components/home/Destinations";
 import WhySection from "@/components/home/WhySection";
 import CTASection from "@/components/home/CTASection";
-import { featuredVillas, sampleDestinations } from "@/lib/data/sample";
+import { createClient } from "@/lib/supabase/server";
+import { getFeaturedVillas, getDestinations } from "@/lib/supabase/queries";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const supabase = await createClient();
+  const [featuredVillas, destinations] = await Promise.all([
+    getFeaturedVillas(supabase),
+    getDestinations(supabase),
+  ]);
+
   return (
     <>
       <Navbar />
       <main>
         <HeroSection />
         <FeaturedVillas villas={featuredVillas} />
-        <Destinations destinations={sampleDestinations} />
+        <Destinations destinations={destinations} />
         <WhySection />
         <CTASection />
       </main>

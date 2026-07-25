@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import VillasPageClient from "@/components/villas/VillasPageClient";
-import { allVillas, sampleDestinations } from "@/lib/data/sample";
+import { createClient } from "@/lib/supabase/server";
+import { getVillas, getDestinations } from "@/lib/supabase/queries";
+import { Destination } from "@/types";
+
+export const dynamic = "force-dynamic";
 
 type VillasSearchParams = Promise<{ destination?: string }>;
 
-function findDestination(destination?: string) {
+function findDestination(destinations: Destination[], destination?: string) {
   if (!destination) return undefined;
-  return sampleDestinations.find(
-    (d) => d.slug === destination.toLowerCase()
-  );
+  return destinations.find((d) => d.slug === destination.toLowerCase());
 }
 
 export async function generateMetadata({
@@ -19,7 +21,9 @@ export async function generateMetadata({
   searchParams: VillasSearchParams;
 }): Promise<Metadata> {
   const { destination } = await searchParams;
-  const destMeta = findDestination(destination);
+  const supabase = await createClient();
+  const destinations = await getDestinations(supabase);
+  const destMeta = findDestination(destinations, destination);
 
   if (destMeta) {
     return {
@@ -43,14 +47,19 @@ export default async function VillasPage({
   searchParams: VillasSearchParams;
 }) {
   const { destination } = await searchParams;
-  const destMeta = findDestination(destination);
+  const supabase = await createClient();
+  const [villas, destinations] = await Promise.all([
+    getVillas(supabase),
+    getDestinations(supabase),
+  ]);
+  const destMeta = findDestination(destinations, destination);
 
   return (
     <>
       <Navbar transparent={false} />
       <VillasPageClient
-        villas={allVillas}
-        destinations={sampleDestinations}
+        villas={villas}
+        destinations={destinations}
         initialDestination={destMeta?.name}
       />
       <Footer />

@@ -12,17 +12,16 @@ import LocationSection from "@/components/villa/LocationSection";
 import BookingCard from "@/components/villa/BookingCard";
 import ReviewsSection from "@/components/villa/ReviewsSection";
 import SimilarVillas from "@/components/villa/SimilarVillas";
-import { allVillas, sampleDestinations } from "@/lib/data/sample";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getVillaBySlug,
+  getDestinations,
+  getSimilarVillas,
+} from "@/lib/supabase/queries";
+
+export const dynamic = "force-dynamic";
 
 type VillaParams = Promise<{ slug: string }>;
-
-function findVilla(slug: string) {
-  return allVillas.find((v) => v.slug === slug);
-}
-
-export async function generateStaticParams() {
-  return allVillas.map((villa) => ({ slug: villa.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -30,7 +29,8 @@ export async function generateMetadata({
   params: VillaParams;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const villa = findVilla(slug);
+  const supabase = await createClient();
+  const villa = await getVillaBySlug(supabase, slug);
 
   if (!villa) {
     return { title: "Villa not found | StayVilla" };
@@ -48,17 +48,17 @@ export default async function VillaDetailPage({
   params: VillaParams;
 }) {
   const { slug } = await params;
-  const villa = findVilla(slug);
+  const supabase = await createClient();
+  const villa = await getVillaBySlug(supabase, slug);
 
   if (!villa) notFound();
 
-  const destinationMeta = sampleDestinations.find(
-    (d) => d.name === villa.destination
-  );
+  const [destinations, similarVillas] = await Promise.all([
+    getDestinations(supabase),
+    getSimilarVillas(supabase, villa.destination, villa.id),
+  ]);
 
-  const similarVillas = allVillas
-    .filter((v) => v.destination === villa.destination && v.id !== villa.id)
-    .slice(0, 6);
+  const destinationMeta = destinations.find((d) => d.name === villa.destination);
 
   return (
     <>
@@ -101,6 +101,7 @@ export default async function VillaDetailPage({
 
             <div className="lg:w-[40%]">
               <BookingCard
+                villaId={villa.id}
                 villaName={villa.name}
                 pricePerNight={villa.price_per_night}
                 weekendPrice={villa.weekend_price}

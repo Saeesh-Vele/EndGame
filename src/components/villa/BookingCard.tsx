@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { MessageCircle, Minus, Plus } from "lucide-react";
+import { submitBookingRequest } from "@/app/villas/[slug]/actions";
 
 function formatINR(amount: number) {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -51,6 +52,7 @@ function calcPricing(
 }
 
 export default function BookingCard({
+  villaId,
   villaName,
   pricePerNight,
   weekendPrice,
@@ -58,6 +60,7 @@ export default function BookingCard({
   ownerName,
   ownerWhatsapp,
 }: {
+  villaId: string;
   villaName: string;
   pricePerNight: number;
   weekendPrice?: number;
@@ -68,7 +71,12 @@ export default function BookingCard({
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   const [requestSent, setRequestSent] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const pricing = useMemo(
     () => calcPricing(checkIn, checkOut, pricePerNight, weekendPrice),
@@ -88,6 +96,38 @@ export default function BookingCard({
   }, [villaName, checkIn, checkOut, guests, ownerWhatsapp]);
 
   const canRequest = Boolean(pricing);
+  const resetRequestState = () => {
+    setRequestSent(false);
+    setErrorMessage(null);
+  };
+
+  const handleRequest = () => {
+    if (!pricing) return;
+    if (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim()) {
+      setErrorMessage("Please fill in your name, email, and phone number.");
+      return;
+    }
+
+    setErrorMessage(null);
+    startTransition(async () => {
+      const result = await submitBookingRequest({
+        villaId,
+        checkIn,
+        checkOut,
+        guests,
+        totalPrice: pricing.total,
+        guestName: guestName.trim(),
+        guestEmail: guestEmail.trim(),
+        guestPhone: guestPhone.trim(),
+      });
+
+      if (result.success) {
+        setRequestSent(true);
+      } else {
+        setErrorMessage(result.error ?? "Something went wrong. Please try again.");
+      }
+    });
+  };
 
   return (
     <div className="lg:sticky lg:top-24 self-start rounded-2xl bg-white shadow-sm p-6">
@@ -107,7 +147,7 @@ export default function BookingCard({
               value={checkIn}
               onChange={(e) => {
                 setCheckIn(e.target.value);
-                setRequestSent(false);
+                resetRequestState();
               }}
               className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
             />
@@ -121,7 +161,7 @@ export default function BookingCard({
               value={checkOut}
               onChange={(e) => {
                 setCheckOut(e.target.value);
-                setRequestSent(false);
+                resetRequestState();
               }}
               className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
             />
@@ -155,6 +195,47 @@ export default function BookingCard({
         </div>
       </div>
 
+      {canRequest && !requestSent && (
+        <div className="mt-4 flex flex-col gap-2.5">
+          <input
+            type="text"
+            value={guestName}
+            onChange={(e) => {
+              setGuestName(e.target.value);
+              resetRequestState();
+            }}
+            placeholder="Full name"
+            className="rounded-xl border border-pebble px-3.5 py-2.5 text-sm text-charcoal outline-none placeholder:text-slate/70"
+          />
+          <div className="grid grid-cols-2 gap-2.5">
+            <input
+              type="email"
+              value={guestEmail}
+              onChange={(e) => {
+                setGuestEmail(e.target.value);
+                resetRequestState();
+              }}
+              placeholder="Email"
+              className="rounded-xl border border-pebble px-3.5 py-2.5 text-sm text-charcoal outline-none placeholder:text-slate/70"
+            />
+            <input
+              type="tel"
+              value={guestPhone}
+              onChange={(e) => {
+                setGuestPhone(e.target.value);
+                resetRequestState();
+              }}
+              placeholder="Phone"
+              className="rounded-xl border border-pebble px-3.5 py-2.5 text-sm text-charcoal outline-none placeholder:text-slate/70"
+            />
+          </div>
+        </div>
+      )}
+
+      {errorMessage && (
+        <p className="mt-3 text-sm text-red-600">{errorMessage}</p>
+      )}
+
       {requestSent ? (
         <div className="mt-4 rounded-xl bg-forest/10 px-4 py-3.5 text-sm text-forest">
           Request sent — {ownerName ?? "the host"} usually responds within a
@@ -163,11 +244,15 @@ export default function BookingCard({
       ) : (
         <button
           type="button"
-          onClick={() => canRequest && setRequestSent(true)}
-          disabled={!canRequest}
+          onClick={handleRequest}
+          disabled={!canRequest || isPending}
           className="cursor-pointer mt-4 w-full rounded-xl bg-forest hover:bg-forest-light active:bg-forest-dark disabled:bg-pebble disabled:cursor-not-allowed text-white text-sm font-medium px-6 py-3.5 transition-colors duration-200"
         >
-          {canRequest ? "Request to book" : "Check availability"}
+          {isPending
+            ? "Sending request…"
+            : canRequest
+              ? "Request to book"
+              : "Check availability"}
         </button>
       )}
 
