@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import VillaForm from "@/components/admin/villas/VillaForm";
+import { createClient } from "@/lib/supabase/server";
+import { getDestinations } from "@/lib/supabase/queries";
 
-export default function NewVillaPage() {
+export default async function NewVillaPage() {
+  const supabase = await createClient();
+  const destinations = await getDestinations(supabase);
+
   return (
     <div>
       <Link
@@ -19,7 +24,7 @@ export default function NewVillaPage() {
       </p>
 
       <div className="mt-6">
-        <VillaForm />
+        <VillaForm destinations={destinations} />
       </div>
     </div>
   );

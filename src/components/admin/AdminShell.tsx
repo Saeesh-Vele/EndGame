@@ -10,6 +10,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
+import SignOutButton from "@/components/admin/SignOutButton";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -25,8 +26,10 @@ function isActive(pathname: string, href: string) {
 
 export default function AdminShell({
   children,
+  email,
 }: {
   children: React.ReactNode;
+  email: string;
 }) {
   const pathname = usePathname();
 
@@ -58,7 +61,7 @@ export default function AdminShell({
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-white/10">
+        <div className="px-3 py-4 border-t border-white/10 flex flex-col gap-1">
           <Link
             href="/"
             className="cursor-pointer flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-200"
@@ -66,20 +69,34 @@ export default function AdminShell({
             <ExternalLink size={18} />
             View site
           </Link>
+
+          <div className="mt-2 px-3 pt-3 border-t border-white/10">
+            <p className="text-[11px] uppercase tracking-wider text-white/40">
+              Signed in as
+            </p>
+            <p className="mt-0.5 text-xs text-white/80 truncate" title={email}>
+              {email}
+            </p>
+          </div>
+
+          <SignOutButton className="mt-2" />
         </div>
       </aside>
 
       <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between bg-charcoal text-white px-5 py-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-base font-medium text-white">StayVilla</p>
-          <p className="text-xs text-white/50">Admin dashboard</p>
+          <p className="text-xs text-white/50 truncate">{email}</p>
         </div>
-        <Link
-          href="/"
-          className="cursor-pointer text-xs text-white/70 hover:text-white transition-colors duration-200"
-        >
-          View site
-        </Link>
+        <div className="flex items-center gap-3 shrink-0">
+          <Link
+            href="/"
+            className="cursor-pointer text-xs text-white/70 hover:text-white transition-colors duration-200"
+          >
+            View site
+          </Link>
+          <SignOutButton compact />
+        </div>
       </header>
 
       <main className="lg:pl-64 pb-20 lg:pb-0 bg-white min-h-screen">

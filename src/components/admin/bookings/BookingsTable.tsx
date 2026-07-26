@@ -21,8 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/admin/StatusBadge";
-import { useAdminData } from "@/components/admin/AdminDataProvider";
-import { BookingRequest } from "@/types";
+import { AdminBookingRequest } from "@/types";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -49,15 +48,11 @@ function SortButton({ label, onClick }: { label: string; onClick: () => void }) 
 export default function BookingsTable({
   bookings,
 }: {
-  bookings: BookingRequest[];
+  bookings: AdminBookingRequest[];
 }) {
-  const { villas } = useAdminData();
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const villaName = (id: string) =>
-    villas.find((v) => v.id === id)?.name ?? "Unknown villa";
-
-  const columns: ColumnDef<BookingRequest>[] = [
+  const columns: ColumnDef<AdminBookingRequest>[] = [
     {
       accessorKey: "guest_name",
       header: ({ column }) => (
@@ -78,12 +73,10 @@ export default function BookingsTable({
       ),
     },
     {
-      accessorKey: "villa_id",
+      accessorKey: "villa_name",
       header: "Villa",
       cell: ({ row }) => (
-        <span className="text-sm text-charcoal">
-          {villaName(row.original.villa_id)}
-        </span>
+        <span className="text-sm text-charcoal">{row.original.villa_name}</span>
       ),
     },
     {

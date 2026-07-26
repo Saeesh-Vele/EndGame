@@ -1,0 +1,76 @@
+-- StayVilla — how to create the first admin account
+--
+-- This file is documentation, not a migration to run blind. Every statement
+-- below is commented out on purpose: promoting an account to admin grants
+-- full write access to villas, bookings, and destinations (see the RLS
+-- policies in 001_initial_schema.sql), so it should be a deliberate act
+-- against a user id you have just created and can verify.
+--
+-- ---------------------------------------------------------------------------
+-- Step 1 — create the account
+-- ---------------------------------------------------------------------------
+--
+-- Sign up the email/password you want to use as the admin login. Two ways:
+--
+--   a) Supabase Dashboard > Authentication > Users > "Add user", tick
+--      "Auto Confirm User" so the account can sign in immediately. This is
+--      the recommended route — /admin/login only signs in, it has no
+--      sign-up form.
+--
+--   b) Via the API, then confirm the account from the dashboard:
+--        curl -X POST "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/signup" \
+--          -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+--          -H "Content-Type: application/json" \
+--          -d '{"email":"you@example.com","password":"a-strong-password"}'
+--
+-- The on_auth_user_created trigger from 001_initial_schema.sql automatically
+-- inserts a public.profiles row with is_admin = false.
+--
+-- ---------------------------------------------------------------------------
+-- Step 2 — find the user's id
+-- ---------------------------------------------------------------------------
+--
+--   select id, email, created_at
+--   from auth.users
+--   order by created_at desc
+--   limit 5;
+--
+-- ---------------------------------------------------------------------------
+-- Step 3 — promote that account to admin
+-- ---------------------------------------------------------------------------
+--
+-- Run this in the Supabase SQL editor, substituting the uuid from step 2:
+--
+--   update public.profiles
+--   set is_admin = true
+--   where id = '<your-user-uuid>';
+--
+-- Or, if you'd rather look the user up by email than copy a uuid:
+--
+--   update public.profiles
+--   set is_admin = true
+--   where id = (select id from auth.users where email = 'you@example.com');
+--
+-- ---------------------------------------------------------------------------
+-- Step 4 — verify
+-- ---------------------------------------------------------------------------
+--
+--   select u.email, p.is_admin
+--   from public.profiles p
+--   join auth.users u on u.id = p.id
+--   where p.is_admin = true;
+--
+-- Then sign in at /admin/login. Anyone without is_admin = true is signed
+-- straight back out with an "access denied" message.
+--
+-- ---------------------------------------------------------------------------
+-- Revoking admin access
+-- ---------------------------------------------------------------------------
+--
+--   update public.profiles
+--   set is_admin = false
+--   where id = '<user-uuid>';
+--
+-- The proxy (src/proxy.ts) re-checks is_admin on every /admin request, so
+-- revocation takes effect on that user's next navigation — no need to wait
+-- for their session to expire.

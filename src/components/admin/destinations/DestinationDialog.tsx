@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useAdminData } from "@/components/admin/AdminDataProvider";
+import { createDestination, updateDestination } from "@/app/admin/actions";
 import { Destination } from "@/types";
 import { slugify } from "@/lib/slugify";
 
@@ -25,7 +26,8 @@ export default function DestinationDialog({
 }: {
   destination?: Destination;
 }) {
-  const { addDestination, updateDestination } = useAdminData();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const isEditing = Boolean(destination);
 
   const [open, setOpen] = useState(false);
@@ -51,27 +53,29 @@ export default function DestinationDialog({
       return;
     }
 
-    const payload = {
+    const values = {
       name: name.trim(),
       slug: slug || slugify(name),
-      image: image.trim(),
+      image_url: image.trim(),
       meta_title: metaTitle.trim() || undefined,
       meta_description: metaDescription.trim() || undefined,
     };
 
-    if (isEditing && destination) {
-      updateDestination(destination.id, payload);
-      toast.success(`${payload.name} updated`);
-    } else {
-      addDestination({
-        ...payload,
-        id: `dest-${Date.now()}`,
-        villa_count: 0,
-      });
-      toast.success(`${payload.name} added`);
-    }
+    startTransition(async () => {
+      const result =
+        isEditing && destination
+          ? await updateDestination(destination.id, values)
+          : await createDestination(values);
 
-    setOpen(false);
+      if (!result.success) {
+        toast.error(result.error ?? "Couldn't save the destination.");
+        return;
+      }
+
+      toast.success(`${values.name} ${isEditing ? "updated" : "added"}`);
+      setOpen(false);
+      router.refresh();
+    });
   };
 
   return (
@@ -165,8 +169,13 @@ export default function DestinationDialog({
           </div>
 
           <DialogFooter>
-            <Button type="submit">
-              {isEditing ? "Save changes" : "Add destination"}
+            <Button type="submit" disabled={pending}>
+              {pending && <Loader2 size={16} className="animate-spin" />}
+              {pending
+                ? "Saving…"
+                : isEditing
+                  ? "Save changes"
+                  : "Add destination"}
             </Button>
           </DialogFooter>
         </form>

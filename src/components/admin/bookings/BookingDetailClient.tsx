@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Phone, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Phone, Trash2, Users } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +15,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import StatusBadge from "@/components/admin/StatusBadge";
-import { useAdminData } from "@/components/admin/AdminDataProvider";
-import { BookingRequest } from "@/types";
+import {
+  deleteBooking,
+  updateBookingNotes,
+  updateBookingStatus,
+} from "@/app/admin/actions";
+import { AdminBookingRequest, BookingRequest } from "@/types";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -38,24 +54,59 @@ const STATUS_OPTIONS: BookingRequest["status"][] = [
   "completed",
 ];
 
-export default function BookingDetailClient({ id }: { id: string }) {
-  const { bookings, villas, updateBooking } = useAdminData();
-  const booking = bookings.find((b) => b.id === id);
-  const villa = villas.find((v) => v.id === booking?.villa_id);
-
-  const [notes, setNotes] = useState(booking?.admin_notes ?? "");
-
-  if (!booking) {
-    return (
-      <div>
-        <BackLink />
-        <p className="mt-6 text-sm text-slate">Booking not found.</p>
-      </div>
-    );
-  }
+export default function BookingDetailClient({
+  booking,
+}: {
+  booking: AdminBookingRequest;
+}) {
+  const router = useRouter();
+  const [notes, setNotes] = useState(booking.admin_notes ?? "");
+  const [statusPending, startStatusUpdate] = useTransition();
+  const [notesPending, startNotesUpdate] = useTransition();
+  const [deletePending, startDelete] = useTransition();
 
   const nights = nightsBetween(booking.check_in, booking.check_out);
   const avgNightly = Math.round(booking.total_price / nights);
+
+  const handleStatusChange = (value: string) => {
+    startStatusUpdate(async () => {
+      const result = await updateBookingStatus(
+        booking.id,
+        value as BookingRequest["status"]
+      );
+      if (result.success) {
+        toast.success(`Marked as ${value}`);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Couldn't update the status.");
+      }
+    });
+  };
+
+  const handleSaveNotes = () => {
+    startNotesUpdate(async () => {
+      const result = await updateBookingNotes(booking.id, notes);
+      if (result.success) {
+        toast.success("Notes saved");
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Couldn't save the notes.");
+      }
+    });
+  };
+
+  const handleDelete = () => {
+    startDelete(async () => {
+      const result = await deleteBooking(booking.id);
+      if (result.success) {
+        toast.success("Booking request deleted");
+        router.push("/admin/bookings");
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Couldn't delete the booking request.");
+      }
+    });
+  };
 
   return (
     <div className="max-w-3xl">
@@ -79,14 +130,22 @@ export default function BookingDetailClient({ id }: { id: string }) {
             Guest details
           </h2>
           <div className="flex flex-col gap-3 text-sm">
-            <p className="flex items-center gap-2.5 text-charcoal">
+            <a
+              href={`mailto:${booking.guest_email}`}
+              className="cursor-pointer flex items-center gap-2.5 text-charcoal hover:text-forest transition-colors duration-200"
+            >
               <Mail size={15} className="text-slate" />
               {booking.guest_email}
-            </p>
-            <p className="flex items-center gap-2.5 text-charcoal">
-              <Phone size={15} className="text-slate" />
-              {booking.guest_phone}
-            </p>
+            </a>
+            {booking.guest_phone && (
+              <a
+                href={`tel:${booking.guest_phone}`}
+                className="cursor-pointer flex items-center gap-2.5 text-charcoal hover:text-forest transition-colors duration-200"
+              >
+                <Phone size={15} className="text-slate" />
+                {booking.guest_phone}
+              </a>
+            )}
             <p className="flex items-center gap-2.5 text-charcoal">
               <Users size={15} className="text-slate" />
               {booking.guests} guests
@@ -106,31 +165,30 @@ export default function BookingDetailClient({ id }: { id: string }) {
 
         <div className="rounded-2xl border border-pebble bg-white p-6">
           <h2 className="text-base font-medium text-charcoal mb-4">Villa</h2>
-          {villa ? (
-            <Link
-              href={`/admin/villas/${villa.id}/edit`}
-              className="cursor-pointer flex items-center gap-3 group"
-            >
+          <Link
+            href={`/admin/villas/${booking.villa_id}/edit`}
+            className="cursor-pointer flex items-center gap-3 group"
+          >
+            {booking.villa_image && (
               <div className="relative h-14 w-18 shrink-0 rounded-lg overflow-hidden bg-sandstone">
                 <Image
-                  src={villa.images[0]}
-                  alt={villa.name}
+                  src={booking.villa_image}
+                  alt={booking.villa_name}
                   fill
                   sizes="72px"
                   className="object-cover"
-                  unoptimized={villa.images[0]?.startsWith("blob:")}
                 />
               </div>
-              <div className="min-w-0">
-                <p className="text-sm text-charcoal group-hover:text-forest transition-colors duration-200 truncate">
-                  {villa.name}
-                </p>
-                <p className="text-xs text-slate truncate">{villa.location}</p>
-              </div>
-            </Link>
-          ) : (
-            <p className="text-sm text-slate">Villa not found.</p>
-          )}
+            )}
+            <div className="min-w-0">
+              <p className="text-sm text-charcoal group-hover:text-forest transition-colors duration-200 truncate">
+                {booking.villa_name}
+              </p>
+              <p className="text-xs text-slate truncate">
+                {booking.villa_location}
+              </p>
+            </div>
+          </Link>
 
           <div className="mt-4 pt-4 border-t border-pebble flex flex-col gap-2 text-sm">
             <div className="flex items-center justify-between">
@@ -174,12 +232,8 @@ export default function BookingDetailClient({ id }: { id: string }) {
         <h2 className="text-base font-medium text-charcoal mb-4">Status</h2>
         <Select
           value={booking.status}
-          onValueChange={(value) => {
-            updateBooking(booking.id, {
-              status: value as BookingRequest["status"],
-            });
-            toast.success(`Marked as ${value}`);
-          }}
+          disabled={statusPending}
+          onValueChange={handleStatusChange}
         >
           <SelectTrigger className="w-full sm:w-56">
             <SelectValue />
@@ -207,13 +261,54 @@ export default function BookingDetailClient({ id }: { id: string }) {
         <Button
           type="button"
           className="mt-3"
-          onClick={() => {
-            updateBooking(booking.id, { admin_notes: notes });
-            toast.success("Notes saved");
-          }}
+          disabled={notesPending}
+          onClick={handleSaveNotes}
         >
-          Save notes
+          {notesPending && <Loader2 size={16} className="animate-spin" />}
+          {notesPending ? "Saving…" : "Save notes"}
         </Button>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-destructive/20 bg-white p-6">
+        <h2 className="text-base font-medium text-charcoal">Danger zone</h2>
+        <p className="mt-1 text-sm text-slate">
+          Deleting removes this request permanently. Cancelling it instead
+          keeps the record.
+        </p>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="destructive"
+              className="mt-4"
+              disabled={deletePending}
+            >
+              <Trash2 size={15} />
+              Delete request
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Delete this booking request?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {booking.guest_name}&apos;s request for {booking.villa_name}{" "}
+                will be removed permanently. This can&apos;t be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                disabled={deletePending}
+                onClick={handleDelete}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

@@ -1,9 +1,17 @@
-"use client";
-
-import { LayoutDashboard, ClipboardList, CalendarClock, MapPin } from "lucide-react";
-import { useAdminData } from "@/components/admin/AdminDataProvider";
+import Link from "next/link";
+import {
+  LayoutDashboard,
+  ClipboardList,
+  CalendarClock,
+  MapPin,
+} from "lucide-react";
 import StatCard from "@/components/admin/StatCard";
 import { formatRelativeTime } from "@/lib/format-relative-time";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getAdminBookingRequests,
+  getAdminDashboardStats,
+} from "@/lib/supabase/queries";
 import { BookingRequest } from "@/types";
 
 function activityVerb(status: BookingRequest["status"]) {
@@ -19,29 +27,13 @@ function activityVerb(status: BookingRequest["status"]) {
   }
 }
 
-export default function AdminDashboardPage() {
-  const { villas, bookings, destinations } = useAdminData();
+export default async function AdminDashboardPage() {
+  const supabase = await createClient();
 
-  const pendingCount = bookings.filter((b) => b.status === "pending").length;
-
-  const now = new Date();
-  const thisMonthCount = bookings.filter((b) => {
-    const created = new Date(b.created_at);
-    return (
-      created.getMonth() === now.getMonth() &&
-      created.getFullYear() === now.getFullYear()
-    );
-  }).length;
-
-  const recentActivity = [...bookings]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-    .slice(0, 8);
-
-  const villaName = (id: string) =>
-    villas.find((v) => v.id === id)?.name ?? "a villa";
+  const [stats, recentActivity] = await Promise.all([
+    getAdminDashboardStats(supabase),
+    getAdminBookingRequests(supabase, 10),
+  ]);
 
   return (
     <div>
@@ -51,20 +43,24 @@ export default function AdminDashboardPage() {
       </p>
 
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total villas" value={villas.length} icon={LayoutDashboard} />
+        <StatCard
+          label="Total villas"
+          value={stats.villas}
+          icon={LayoutDashboard}
+        />
         <StatCard
           label="Pending requests"
-          value={pendingCount}
+          value={stats.pendingBookings}
           icon={ClipboardList}
         />
         <StatCard
           label="This month's inquiries"
-          value={thisMonthCount}
+          value={stats.inquiriesThisMonth}
           icon={CalendarClock}
         />
         <StatCard
           label="Destinations"
-          value={destinations.length}
+          value={stats.destinations}
           icon={MapPin}
         />
       </div>
@@ -75,25 +71,32 @@ export default function AdminDashboardPage() {
             Recent activity
           </h2>
         </div>
-        <ul className="divide-y divide-pebble">
-          {recentActivity.map((booking) => (
-            <li
-              key={booking.id}
-              className="px-5 py-4 flex items-center justify-between gap-4 text-sm"
-            >
-              <p className="text-charcoal">
-                <span className="font-medium">{booking.guest_name}</span>{" "}
-                {activityVerb(booking.status)}{" "}
-                <span className="font-medium">
-                  {villaName(booking.villa_id)}
-                </span>
-              </p>
-              <span className="shrink-0 text-xs text-slate">
-                {formatRelativeTime(booking.created_at)}
-              </span>
-            </li>
-          ))}
-        </ul>
+
+        {recentActivity.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-slate">
+            No booking requests yet.
+          </p>
+        ) : (
+          <ul className="divide-y divide-pebble">
+            {recentActivity.map((booking) => (
+              <li key={booking.id}>
+                <Link
+                  href={`/admin/bookings/${booking.id}`}
+                  className="cursor-pointer px-5 py-4 flex items-center justify-between gap-4 text-sm hover:bg-sandstone/50 transition-colors duration-200"
+                >
+                  <p className="text-charcoal">
+                    <span className="font-medium">{booking.guest_name}</span>{" "}
+                    {activityVerb(booking.status)}{" "}
+                    <span className="font-medium">{booking.villa_name}</span>
+                  </p>
+                  <span className="shrink-0 text-xs text-slate">
+                    {formatRelativeTime(booking.created_at)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

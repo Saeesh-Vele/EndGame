@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   type ColumnDef,
   type SortingState,
@@ -21,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,9 +34,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useAdminData } from "@/components/admin/AdminDataProvider";
+import { deleteVilla, toggleVillaActive } from "@/app/admin/actions";
 import { Villa } from "@/types";
 import { toast } from "sonner";
+
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1400&auto=format&fit=crop";
 
 function SortButton({
   label,
@@ -58,8 +62,35 @@ function SortButton({
 }
 
 export default function VillasTable({ villas }: { villas: Villa[] }) {
-  const { deleteVilla } = useAdminData();
+  const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [pending, startTransition] = useTransition();
+
+  const handleDelete = (villa: Villa) => {
+    startTransition(async () => {
+      const result = await deleteVilla(villa.id);
+      if (result.success) {
+        toast.success(`${villa.name} deleted`);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Couldn't delete the villa.");
+      }
+    });
+  };
+
+  const handleToggleActive = (villa: Villa, isActive: boolean) => {
+    startTransition(async () => {
+      const result = await toggleVillaActive(villa.id, isActive);
+      if (result.success) {
+        toast.success(
+          `${villa.name} is now ${isActive ? "live" : "hidden"} on the site`
+        );
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Couldn't update the villa's status.");
+      }
+    });
+  };
 
   const columns: ColumnDef<Villa>[] = [
     {
@@ -74,12 +105,11 @@ export default function VillasTable({ villas }: { villas: Villa[] }) {
         <div className="flex items-center gap-3">
           <div className="relative h-11 w-14 shrink-0 rounded-lg overflow-hidden bg-sandstone">
             <Image
-              src={row.original.images[0]}
+              src={row.original.images[0] ?? FALLBACK_IMAGE}
               alt={row.original.name}
               fill
               sizes="56px"
               className="object-cover"
-              unoptimized={row.original.images[0]?.startsWith("blob:")}
             />
           </div>
           <div className="min-w-0">
@@ -135,16 +165,25 @@ export default function VillasTable({ villas }: { villas: Villa[] }) {
       accessorKey: "is_active",
       header: "Status",
       cell: ({ row }) => (
-        <Badge
-          variant="outline"
-          className={
-            row.original.is_active
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-slate-100 text-slate-500 border-slate-200"
-          }
-        >
-          {row.original.is_active ? "Active" : "Inactive"}
-        </Badge>
+        <div className="flex items-center gap-2.5">
+          <Switch
+            checked={row.original.is_active}
+            disabled={pending}
+            onCheckedChange={(checked) =>
+              handleToggleActive(row.original, checked)
+            }
+            aria-label={`${
+              row.original.is_active ? "Hide" : "Publish"
+            } ${row.original.name}`}
+          />
+          <span
+            className={`text-xs ${
+              row.original.is_active ? "text-charcoal" : "text-slate"
+            }`}
+          >
+            {row.original.is_active ? "Active" : "Inactive"}
+          </span>
+        </div>
       ),
     },
     {
@@ -176,18 +215,16 @@ export default function VillasTable({ villas }: { villas: Villa[] }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete {row.original.name}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will remove the villa from the listing. This action
-                  can&apos;t be undone.
+                  This deletes the villa and its uploaded photos, and removes
+                  it from the public site. This action can&apos;t be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   variant="destructive"
-                  onClick={() => {
-                    deleteVilla(row.original.id);
-                    toast.success(`${row.original.name} deleted`);
-                  }}
+                  disabled={pending}
+                  onClick={() => handleDelete(row.original)}
                 >
                   Delete
                 </AlertDialogAction>

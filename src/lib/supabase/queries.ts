@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { BookingRequest, Destination, Review, Villa } from "@/types";
+import {
+  AdminBookingRequest,
+  BookingRequest,
+  Destination,
+  Review,
+  Villa,
+} from "@/types";
 
 // ---------------------------------------------------------------------------
 // Raw row shapes, matching supabase/migrations/001_initial_schema.sql.
@@ -96,6 +102,7 @@ function mapVilla(row: VillaRow): Villa {
     slug: row.slug,
     location: row.location,
     destination: row.destinations?.name ?? "",
+    destination_id: row.destination_id ?? undefined,
     description: row.description ?? "",
     price_per_night: Number(row.price_per_night),
     weekend_price:
@@ -326,14 +333,26 @@ export async function updateBookingRequest(
   return mapBookingRequest(data);
 }
 
+/** Deletes a booking request outright. Admin-only per RLS. */
+export async function deleteBookingRequest(
+  client: SupabaseClient,
+  id: string
+): Promise<void> {
+  const { error } = await client
+    .from("booking_requests")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
 // ---------------------------------------------------------------------------
 // Admin CRUD — villas & destinations.
 //
 // Requires an authenticated session with a matching admin profile (see
-// is_admin() and the RLS policies in the migration). The admin dashboard
-// currently runs on local mock state (src/components/admin/AdminDataProvider)
-// pending an admin login flow; these are ready for that follow-up to wire
-// up against.
+// is_admin() and the RLS policies in the migration). Called from the Server
+// Actions in src/app/admin/actions.ts, which re-check admin status before
+// invoking any of these.
 // ---------------------------------------------------------------------------
 
 export interface VillaInput {
@@ -357,6 +376,7 @@ export interface VillaInput {
   is_active: boolean;
 }
 
+/** Every villa including inactive ones — the public getVillas() filters those out. */
 export async function getVillasForAdmin(
   client: SupabaseClient
 ): Promise<Villa[]> {
@@ -367,6 +387,21 @@ export async function getVillasForAdmin(
 
   if (error) throw error;
   return (data ?? []).map(mapVilla);
+}
+
+/** Single villa by primary key, active or not. For the admin edit form. */
+export async function getVillaById(
+  client: SupabaseClient,
+  id: string
+): Promise<Villa | null> {
+  const { data, error } = await client
+    .from("villas")
+    .select(VILLA_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? mapVilla(data) : null;
 }
 
 export async function createVilla(
@@ -451,4 +486,129 @@ export async function deleteDestination(
 ): Promise<void> {
   const { error } = await client.from("destinations").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// Admin reads that join across tables.
+// ---------------------------------------------------------------------------
+
+interface AdminBookingRow extends BookingRequestRow {
+  villas: { name: string; location: string; images: string[] } | null;
+}
+
+const ADMIN_BOOKING_SELECT = "*, villas(name, location, images)";
+
+function mapAdminBooking(row: AdminBookingRow): AdminBookingRequest {
+  return {
+    ...mapBookingRequest(row),
+    villa_name: row.villas?.name ?? "Unknown villa",
+    villa_location: row.villas?.location ?? "",
+    villa_image: row.villas?.images?.[0] ?? null,
+  };
+}
+
+/** All booking requests with their villa joined in, newest first. */
+export async function getAdminBookingRequests(
+  client: SupabaseClient,
+  limit?: number
+): Promise<AdminBookingRequest[]> {
+  let query = client
+    .from("booking_requests")
+    .select(ADMIN_BOOKING_SELECT)
+    .order("created_at", { ascending: false });
+
+  if (limit !== undefined) query = query.limit(limit);
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+  return (data ?? []).map(mapAdminBooking);
+}
+
+export async function getAdminBookingRequestById(
+  client: SupabaseClient,
+  id: string
+): Promise<AdminBookingRequest | null> {
+  const { data, error } = await client
+    .from("booking_requests")
+    .select(ADMIN_BOOKING_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? mapAdminBooking(data) : null;
+}
+
+/**
+ * Live villa counts per destination id.
+ *
+ * destinations.villa_count is a stored column that nothing currently keeps in
+ * sync, so the admin screens count the rows instead — and deleting a
+ * destination checks this rather than trusting the column.
+ */
+export async function getVillaCountsByDestination(
+  client: SupabaseClient
+): Promise<Record<string, number>> {
+  const { data, error } = await client
+    .from("villas")
+    .select("destination_id");
+
+  if (error) throw error;
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const id = (row as { destination_id: string | null }).destination_id;
+    if (id) counts[id] = (counts[id] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/** Number of villas still pointing at a destination. Guards deletion. */
+export async function countVillasInDestination(
+  client: SupabaseClient,
+  destinationId: string
+): Promise<number> {
+  const { count, error } = await client
+    .from("villas")
+    .select("id", { count: "exact", head: true })
+    .eq("destination_id", destinationId);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/** Counts for the dashboard stat cards, in one round trip each. */
+export async function getAdminDashboardStats(client: SupabaseClient): Promise<{
+  villas: number;
+  pendingBookings: number;
+  inquiriesThisMonth: number;
+  destinations: number;
+}> {
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const [villas, pending, thisMonth, destinations] = await Promise.all([
+    client.from("villas").select("id", { count: "exact", head: true }),
+    client
+      .from("booking_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+    client
+      .from("booking_requests")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfMonth.toISOString()),
+    client.from("destinations").select("id", { count: "exact", head: true }),
+  ]);
+
+  const firstError =
+    villas.error ?? pending.error ?? thisMonth.error ?? destinations.error;
+  if (firstError) throw firstError;
+
+  return {
+    villas: villas.count ?? 0,
+    pendingBookings: pending.count ?? 0,
+    inquiriesThisMonth: thisMonth.count ?? 0,
+    destinations: destinations.count ?? 0,
+  };
 }

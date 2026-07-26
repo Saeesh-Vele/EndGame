@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,24 +18,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ImageUploadZone from "./ImageUploadZone";
-import { useAdminData } from "@/components/admin/AdminDataProvider";
-import { Villa } from "@/types";
+import { createVilla, updateVilla } from "@/app/admin/actions";
+import { Destination, Villa } from "@/types";
 import { slugify } from "@/lib/slugify";
 import { FEATURE_AMENITIES, ALL_AMENITIES } from "@/lib/amenities";
 
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1400&auto=format&fit=crop";
 
-export default function VillaForm({ villa }: { villa?: Villa }) {
+export default function VillaForm({
+  villa,
+  destinations,
+}: {
+  villa?: Villa;
+  destinations: Destination[];
+}) {
   const router = useRouter();
-  const { destinations, addVilla, updateVilla } = useAdminData();
+  const [saving, startSaving] = useTransition();
+  const [uploading, setUploading] = useState(false);
   const isEditing = Boolean(villa);
 
   const [name, setName] = useState(villa?.name ?? "");
   const [slug, setSlug] = useState(villa?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(isEditing);
-  const [destination, setDestination] = useState(
-    villa?.destination ?? destinations[0]?.name ?? ""
+  // The DB stores a destination_id FK; the picker works in ids so an edit
+  // doesn't depend on matching destination names back to rows.
+  const [destinationId, setDestinationId] = useState(
+    villa?.destination_id ?? destinations[0]?.id ?? ""
   );
   const [location, setLocation] = useState(villa?.location ?? "");
   const [description, setDescription] = useState(villa?.description ?? "");
@@ -85,26 +95,36 @@ export default function VillaForm({ villa }: { villa?: Villa }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !destination || !pricePerNight) {
+    if (uploading) {
+      toast.error("Wait for the photos to finish uploading.");
+      return;
+    }
+
+    if (!name.trim() || !destinationId || !pricePerNight) {
       toast.error("Please fill in the villa name, destination, and price.");
       return;
     }
+
+    const destinationName =
+      destinations.find((d) => d.id === destinationId)?.name ?? "";
 
     const featureAmenities = selectedAmenities.filter((a) =>
       FEATURE_AMENITIES.includes(a)
     );
 
+    // The compact list is what villa cards render; full_amenities is the
+    // complete set shown on the detail page.
     const compactAmenities = [
       `${maxGuests} guests`,
       `${bedrooms} bedrooms`,
       ...featureAmenities.slice(0, 2),
     ];
 
-    const payload = {
+    const values = {
       name: name.trim(),
       slug: slug || slugify(name),
-      location: location.trim() || destination,
-      destination,
+      destination_id: destinationId,
+      location: location.trim() || destinationName,
       description: description.trim(),
       price_per_night: Number(pricePerNight) || 0,
       weekend_price: weekendPrice ? Number(weekendPrice) : undefined,
@@ -116,30 +136,26 @@ export default function VillaForm({ villa }: { villa?: Villa }) {
       amenities: compactAmenities,
       full_amenities: selectedAmenities,
       images: images.length > 0 ? images : [PLACEHOLDER_IMAGE],
-      is_superhost: villa?.is_superhost ?? false,
       owner_whatsapp: ownerWhatsapp.trim(),
-      owner_name: ownerName.trim() || undefined,
-      host_since: villa?.host_since,
+      owner_name: ownerName.trim(),
       is_active: isActive,
-      reviews: villa?.reviews,
     };
 
-    if (isEditing && villa) {
-      updateVilla(villa.id, payload);
-      toast.success(`${payload.name} updated`);
-    } else {
-      const newVilla: Villa = {
-        ...payload,
-        id: `v-${Date.now()}`,
-        rating: 0,
-        review_count: 0,
-        created_at: new Date().toISOString(),
-      };
-      addVilla(newVilla);
-      toast.success(`${newVilla.name} created`);
-    }
+    startSaving(async () => {
+      const result =
+        isEditing && villa
+          ? await updateVilla(villa.id, values)
+          : await createVilla(values);
 
-    router.push("/admin/villas");
+      if (!result.success) {
+        toast.error(result.error ?? "Couldn't save the villa.");
+        return;
+      }
+
+      toast.success(`${values.name} ${isEditing ? "updated" : "created"}`);
+      router.push("/admin/villas");
+      router.refresh();
+    });
   };
 
   return (
@@ -175,18 +191,23 @@ export default function VillaForm({ villa }: { villa?: Villa }) {
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="destination">Destination</Label>
-            <Select value={destination} onValueChange={setDestination}>
+            <Select value={destinationId} onValueChange={setDestinationId}>
               <SelectTrigger id="destination" className="w-full">
                 <SelectValue placeholder="Select a destination" />
               </SelectTrigger>
               <SelectContent>
                 {destinations.map((d) => (
-                  <SelectItem key={d.id} value={d.name}>
+                  <SelectItem key={d.id} value={d.id}>
                     {d.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {destinations.length === 0 && (
+              <p className="text-xs text-destructive">
+                Add a destination first — villas have to belong to one.
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="location">Location</Label>
@@ -322,7 +343,11 @@ export default function VillaForm({ villa }: { villa?: Villa }) {
 
       <div className="rounded-2xl border border-pebble bg-white p-6 mt-6">
         <h2 className="text-base font-medium text-charcoal mb-5">Photos</h2>
-        <ImageUploadZone images={images} onChange={setImages} />
+        <ImageUploadZone
+          images={images}
+          onChange={setImages}
+          onUploadingChange={setUploading}
+        />
       </div>
 
       <div className="rounded-2xl border border-pebble bg-white p-6 mt-6">
@@ -362,12 +387,18 @@ export default function VillaForm({ villa }: { villa?: Villa }) {
       </div>
 
       <div className="flex items-center gap-3 mt-6">
-        <Button type="submit">
-          {isEditing ? "Save changes" : "Create villa"}
+        <Button type="submit" disabled={saving || uploading}>
+          {saving && <Loader2 size={16} className="animate-spin" />}
+          {saving
+            ? "Saving…"
+            : isEditing
+              ? "Save changes"
+              : "Create villa"}
         </Button>
         <Button
           type="button"
           variant="outline"
+          disabled={saving}
           onClick={() => router.push("/admin/villas")}
         >
           Cancel

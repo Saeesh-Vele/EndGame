@@ -11,7 +11,10 @@ export interface Villa {
   name: string;
   slug: string;
   location: string;
+  /** Destination name, denormalized for display. */
   destination: string;
+  /** FK into destinations — needed by the admin form, unused by the public site. */
+  destination_id?: string;
   description: string;
   price_per_night: number;
   weekend_price?: number;
@@ -59,4 +62,11 @@ export interface BookingRequest {
   message?: string;
   admin_notes?: string;
   created_at: string;
+}
+
+/** A booking request joined with the villa it's for, as the admin views list it. */
+export interface AdminBookingRequest extends BookingRequest {
+  villa_name: string;
+  villa_location: string;
+  villa_image: string | null;
 }
