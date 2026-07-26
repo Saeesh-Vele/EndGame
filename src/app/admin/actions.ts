@@ -12,14 +12,16 @@ import {
   deleteBookingRequest,
   deleteDestination as removeDestination,
   deleteVilla as removeVilla,
+  deleteVillaSubmission as removeSubmission,
   getVillaById,
   updateBookingRequest,
   updateDestination as patchDestination,
   updateVilla as patchVilla,
+  updateVillaSubmission as patchSubmission,
   type DestinationInput,
   type VillaInput,
 } from "@/lib/supabase/queries";
-import { BookingRequest } from "@/types";
+import { BookingRequest, VillaSubmissionStatus } from "@/types";
 
 export type ActionResult = { success: boolean; error?: string };
 
@@ -328,6 +330,66 @@ export async function deleteDestination(id: string): Promise<ActionResult> {
     return { success: true };
   } catch (err) {
     return failure(err, "Couldn't delete the destination.");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Villa submissions
+//
+// Owners submit through the public /list-your-villa form, which is the only
+// unauthenticated write in the app. Everything past that point — reading a
+// submission, changing its status, deleting it — is admin-only, enforced both
+// here and by RLS.
+// ---------------------------------------------------------------------------
+
+function revalidateSubmissions(id?: string) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/submissions");
+  if (id) revalidatePath(`/admin/submissions/${id}`);
+}
+
+export async function updateSubmissionStatus(
+  id: string,
+  status: VillaSubmissionStatus
+): Promise<ActionResult> {
+  const { client, error } = await requireAdmin();
+  if (!client) return { success: false, error };
+
+  try {
+    await patchSubmission(client, id, { status });
+    revalidateSubmissions(id);
+    return { success: true };
+  } catch (err) {
+    return failure(err, "Couldn't update the submission status.");
+  }
+}
+
+export async function updateSubmissionNotes(
+  id: string,
+  notes: string
+): Promise<ActionResult> {
+  const { client, error } = await requireAdmin();
+  if (!client) return { success: false, error };
+
+  try {
+    await patchSubmission(client, id, { admin_notes: notes });
+    revalidateSubmissions(id);
+    return { success: true };
+  } catch (err) {
+    return failure(err, "Couldn't save the notes.");
+  }
+}
+
+export async function deleteSubmission(id: string): Promise<ActionResult> {
+  const { client, error } = await requireAdmin();
+  if (!client) return { success: false, error };
+
+  try {
+    await removeSubmission(client, id);
+    revalidateSubmissions();
+    return { success: true };
+  } catch (err) {
+    return failure(err, "Couldn't delete the submission.");
   }
 }
 

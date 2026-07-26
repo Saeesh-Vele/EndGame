@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { MessageCircle, Minus, Plus } from "lucide-react";
 import { submitBookingRequest } from "@/app/villas/[slug]/actions";
+import { useSession } from "@/components/shared/SessionProvider";
 
 function formatINR(amount: number) {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -71,12 +72,25 @@ export default function BookingCard({
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
-  const [guestName, setGuestName] = useState("");
-  const [guestEmail, setGuestEmail] = useState("");
+  // null means "untouched", so the signed-in guest's details can show through
+  // as a default without an effect copying them into state — and without
+  // overwriting anything typed before the session resolved.
+  const [guestNameInput, setGuestName] = useState<string | null>(null);
+  const [guestEmailInput, setGuestEmail] = useState<string | null>(null);
   const [guestPhone, setGuestPhone] = useState("");
   const [requestSent, setRequestSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const { user } = useSession();
+
+  const prefillName =
+    typeof user?.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name
+      : "";
+
+  const guestName = guestNameInput ?? prefillName;
+  const guestEmail = guestEmailInput ?? user?.email ?? "";
 
   const pricing = useMemo(
     () => calcPricing(checkIn, checkOut, pricePerNight, weekendPrice),

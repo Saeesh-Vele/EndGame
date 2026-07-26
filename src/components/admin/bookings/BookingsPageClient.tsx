@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import BookingsTable from "@/components/admin/bookings/BookingsTable";
 import DateRangeFilter from "@/components/admin/bookings/DateRangeFilter";
-import { AdminBookingRequest, BookingRequest } from "@/types";
+import { BookingRequestWithVilla, BookingRequest } from "@/types";
 
 const STATUS_OPTIONS: {
   value: BookingRequest["status"] | "all";
@@ -40,7 +40,7 @@ const STATUS_OPTIONS: {
 export default function BookingsPageClient({
   bookings,
 }: {
-  bookings: AdminBookingRequest[];
+  bookings: BookingRequestWithVilla[];
 }) {
   const [statusFilter, setStatusFilter] = useState<
     BookingRequest["status"] | "all"

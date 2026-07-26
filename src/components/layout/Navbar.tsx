@@ -2,15 +2,40 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Heart, LogOut, Menu, ClipboardList, User, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useSession } from "@/components/shared/SessionProvider";
 
 const links = [
   { label: "Villas", href: "/villas" },
   { label: "Destinations", href: "/#destinations" },
-  { label: "About", href: "#" },
+  { label: "About", href: "/about" },
 ];
 
-export default function Navbar({ transparent = true }: { transparent?: boolean }) {
+const ACCOUNT_LINKS = [
+  { label: "My bookings", href: "/dashboard#bookings", icon: ClipboardList },
+  { label: "Saved villas", href: "/dashboard#saved", icon: Heart },
+];
+
+function initialOf(name: string | null) {
+  return name?.trim()?.[0]?.toUpperCase() ?? "?";
+}
+
+export default function Navbar({
+  transparent = true,
+}: {
+  transparent?: boolean;
+}) {
+  const router = useRouter();
+  const { user, displayName, loading, signOut } = useSession();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -24,6 +49,16 @@ export default function Navbar({ transparent = true }: { transparent?: boolean }
 
   const isSolid = !transparent || scrolled;
 
+  const handleSignOut = async () => {
+    setMenuOpen(false);
+    await signOut();
+    router.push("/");
+  };
+
+  const linkClass = isSolid
+    ? "text-charcoal hover:text-forest"
+    : "text-white/90 hover:text-white";
+
   return (
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-colors duration-200 ${
@@ -32,10 +67,7 @@ export default function Navbar({ transparent = true }: { transparent?: boolean }
     >
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="flex items-center justify-between h-18 py-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2 cursor-pointer"
-          >
+          <Link href="/" className="flex items-center gap-2 cursor-pointer">
             <svg
               width="26"
               height="26"
@@ -76,37 +108,83 @@ export default function Navbar({ transparent = true }: { transparent?: boolean }
 
           <nav className="hidden md:flex items-center gap-9">
             {links.map((link) => (
-              <a
+              <Link
                 key={link.label}
                 href={link.href}
-                className={`cursor-pointer text-sm font-normal transition-colors duration-200 ${
-                  isSolid
-                    ? "text-charcoal hover:text-forest"
-                    : "text-white/90 hover:text-white"
-                }`}
+                className={`cursor-pointer text-sm font-normal transition-colors duration-200 ${linkClass}`}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
           <div className="hidden md:flex items-center gap-6">
-            <a
-              href="#"
-              className={`cursor-pointer text-sm transition-colors duration-200 ${
-                isSolid
-                  ? "text-charcoal hover:text-forest"
-                  : "text-white/90 hover:text-white"
-              }`}
-            >
-              Sign in
-            </a>
-            <a
-              href="#"
+            {/* Nothing until the session resolves — better a beat of empty
+                space than "Sign in" flashing at someone who is signed in. */}
+            {loading ? (
+              <span className="h-9 w-9" aria-hidden />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Account menu"
+                    className={`cursor-pointer flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors duration-200 ${
+                      isSolid
+                        ? "bg-forest text-white hover:bg-forest-light"
+                        : "bg-white/90 text-forest hover:bg-white"
+                    }`}
+                  >
+                    {initialOf(displayName)}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel className="font-normal">
+                    <p className="text-sm text-charcoal truncate">
+                      {displayName}
+                    </p>
+                    <p className="text-xs text-slate truncate">{user.email}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {ACCOUNT_LINKS.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href} className="cursor-pointer">
+                        <item.icon size={15} />
+                        {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard#profile" className="cursor-pointer">
+                      <User size={15} />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={handleSignOut}
+                    className="cursor-pointer"
+                  >
+                    <LogOut size={15} />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link
+                href="/auth/login"
+                className={`cursor-pointer text-sm transition-colors duration-200 ${linkClass}`}
+              >
+                Sign in
+              </Link>
+            )}
+
+            <Link
+              href="/list-your-villa"
               className="cursor-pointer rounded-xl bg-forest hover:bg-forest-light active:bg-forest-dark text-white text-sm font-medium px-5 py-2.5 transition-colors duration-200"
             >
               List your villa
-            </a>
+            </Link>
           </div>
 
           <button
@@ -127,25 +205,69 @@ export default function Navbar({ transparent = true }: { transparent?: boolean }
         <div className="md:hidden bg-linen border-t border-pebble">
           <div className="px-5 py-5 flex flex-col gap-4">
             {links.map((link) => (
-              <a
+              <Link
                 key={link.label}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
                 className="cursor-pointer text-charcoal text-sm py-1"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
+
             <div className="h-px bg-pebble my-1" />
-            <a href="#" className="cursor-pointer text-charcoal text-sm py-1">
-              Sign in
-            </a>
-            <a
-              href="#"
+
+            {loading ? null : user ? (
+              <>
+                <p className="text-xs text-slate">
+                  Signed in as{" "}
+                  <span className="text-charcoal">{displayName}</span>
+                </p>
+                {ACCOUNT_LINKS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="cursor-pointer flex items-center gap-2.5 text-charcoal text-sm py-1"
+                  >
+                    <item.icon size={15} className="text-slate" />
+                    {item.label}
+                  </Link>
+                ))}
+                <Link
+                  href="/dashboard#profile"
+                  onClick={() => setMenuOpen(false)}
+                  className="cursor-pointer flex items-center gap-2.5 text-charcoal text-sm py-1"
+                >
+                  <User size={15} className="text-slate" />
+                  Profile
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="cursor-pointer flex items-center gap-2.5 text-charcoal text-sm py-1 text-left"
+                >
+                  <LogOut size={15} className="text-slate" />
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/auth/login"
+                onClick={() => setMenuOpen(false)}
+                className="cursor-pointer text-charcoal text-sm py-1"
+              >
+                Sign in
+              </Link>
+            )}
+
+            <Link
+              href="/list-your-villa"
+              onClick={() => setMenuOpen(false)}
               className="cursor-pointer rounded-xl bg-forest hover:bg-forest-light text-white text-sm font-medium px-5 py-3 text-center transition-colors duration-200"
             >
               List your villa
-            </a>
+            </Link>
           </div>
         </div>
       )}

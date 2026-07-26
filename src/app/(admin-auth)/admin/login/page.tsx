@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import LoginForm from "@/components/admin/LoginForm";
-import { Toaster } from "@/components/ui/sonner";
 
 // Deliberately lives in the (admin-auth) route group rather than under
 // src/app/admin/. Route groups don't affect the URL — this still serves
@@ -68,8 +67,6 @@ export default async function AdminLoginPage({
           </p>
         </div>
       </div>
-
-      <Toaster />
     </div>
   );
 }

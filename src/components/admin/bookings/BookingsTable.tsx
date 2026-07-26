@@ -20,8 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import StatusBadge from "@/components/admin/StatusBadge";
-import { AdminBookingRequest } from "@/types";
+import BookingStatusBadge from "@/components/shared/BookingStatusBadge";
+import { BookingRequestWithVilla } from "@/types";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -48,11 +48,11 @@ function SortButton({ label, onClick }: { label: string; onClick: () => void }) 
 export default function BookingsTable({
   bookings,
 }: {
-  bookings: AdminBookingRequest[];
+  bookings: BookingRequestWithVilla[];
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const columns: ColumnDef<AdminBookingRequest>[] = [
+  const columns: ColumnDef<BookingRequestWithVilla>[] = [
     {
       accessorKey: "guest_name",
       header: ({ column }) => (
@@ -110,7 +110,7 @@ export default function BookingsTable({
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      cell: ({ row }) => <BookingStatusBadge status={row.original.status} />,
     },
     {
       id: "actions",

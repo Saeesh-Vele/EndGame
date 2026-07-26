@@ -6,16 +6,17 @@ import {
   LayoutDashboard,
   Building2,
   ClipboardList,
+  Inbox,
   MapPin,
   ExternalLink,
 } from "lucide-react";
-import { Toaster } from "@/components/ui/sonner";
 import SignOutButton from "@/components/admin/SignOutButton";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/villas", label: "Villas", icon: Building2 },
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
+  { href: "/admin/submissions", label: "Submissions", icon: Inbox },
   { href: "/admin/destinations", label: "Destinations", icon: MapPin },
 ];
 
@@ -110,18 +111,16 @@ export default function AdminShell({
             <Link
               key={item.href}
               href={item.href}
-              className={`cursor-pointer flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-xs transition-colors duration-200 ${
+              className={`cursor-pointer flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] transition-colors duration-200 ${
                 active ? "text-white" : "text-white/50"
               }`}
             >
               <item.icon size={20} />
-              {item.label}
+              <span className="max-w-full truncate px-1">{item.label}</span>
             </Link>
           );
         })}
       </nav>
-
-      <Toaster />
     </div>
   );
 }

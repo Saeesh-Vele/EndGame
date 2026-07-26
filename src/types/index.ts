@@ -64,9 +64,48 @@ export interface BookingRequest {
   created_at: string;
 }
 
-/** A booking request joined with the villa it's for, as the admin views list it. */
-export interface AdminBookingRequest extends BookingRequest {
+/**
+ * A booking request joined with the villa it's for. Used by the admin
+ * bookings screens and by "My bookings" on the guest dashboard.
+ */
+export interface BookingRequestWithVilla extends BookingRequest {
   villa_name: string;
+  villa_slug: string;
   villa_location: string;
   villa_image: string | null;
+}
+
+export type VillaSubmissionStatus =
+  | "pending"
+  | "reviewed"
+  | "approved"
+  | "rejected";
+
+/** A property owner's submission from the public /list-your-villa form. */
+export interface VillaSubmission {
+  id: string;
+  owner_name: string;
+  owner_email: string;
+  owner_phone: string;
+  villa_name: string;
+  location: string;
+  destination?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  max_guests?: number;
+  description?: string;
+  amenities: string[];
+  price_per_night?: number;
+  weekend_price?: number;
+  message?: string;
+  status: VillaSubmissionStatus;
+  admin_notes?: string;
+  created_at: string;
+}
+
+/** The signed-in guest's profile row. */
+export interface Profile {
+  id: string;
+  full_name?: string;
+  is_admin: boolean;
 }

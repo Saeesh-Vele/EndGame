@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   CalendarClock,
+  Inbox,
   MapPin,
 } from "lucide-react";
 import StatCard from "@/components/admin/StatCard";
@@ -42,7 +43,7 @@ export default async function AdminDashboardPage() {
         An overview of villas, bookings, and recent activity.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard
           label="Total villas"
           value={stats.villas}
@@ -58,6 +59,13 @@ export default async function AdminDashboardPage() {
           value={stats.inquiriesThisMonth}
           icon={CalendarClock}
         />
+        <Link href="/admin/submissions" className="cursor-pointer">
+          <StatCard
+            label="New submissions"
+            value={stats.pendingSubmissions}
+            icon={Inbox}
+          />
+        </Link>
         <StatCard
           label="Destinations"
           value={stats.destinations}

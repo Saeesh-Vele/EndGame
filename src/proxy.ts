@@ -3,13 +3,19 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Next.js 16 renamed the `middleware` file convention to `proxy` (the
 // middleware name is deprecated). Same execution model: this runs on the
-// server before /admin/* routes render.
+// server before the matched routes render.
 //
-// This is the outer gate. It is *not* the only check — every Server Action in
-// src/app/admin/actions.ts re-verifies admin status, and RLS in Postgres
-// rejects non-admin writes regardless of what the app layer does.
+// This is the outer gate for two areas:
+//   /admin/*      — admins only, except the login page.
+//   /dashboard/*  — any signed-in guest, but not anonymous sessions.
+//
+// It is *not* the only check. Every Server Action in src/app/admin/actions.ts
+// re-verifies admin status, /admin/layout.tsx and /dashboard/page.tsx check
+// again at render time, and RLS in Postgres rejects non-admin writes
+// regardless of what the app layer does.
 
-const LOGIN_PATH = "/admin/login";
+const ADMIN_LOGIN_PATH = "/admin/login";
+const GUEST_LOGIN_PATH = "/auth/login";
 
 /** Carries any refreshed Supabase auth cookies onto a redirect response. */
 function withAuthCookies(target: NextResponse, source: NextResponse) {
@@ -29,6 +35,10 @@ function redirectTo(
   url.pathname = pathname;
   url.search = search;
   return withAuthCookies(NextResponse.redirect(url), carrier);
+}
+
+function isUnder(pathname: string, base: string) {
+  return pathname === base || pathname.startsWith(`${base}/`);
 }
 
 export async function proxy(request: NextRequest) {
@@ -57,15 +67,42 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const isLoginRoute = request.nextUrl.pathname === LOGIN_PATH;
+  const { pathname, search } = request.nextUrl;
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // -------------------------------------------------------------------------
+  // Guest dashboard
+  // -------------------------------------------------------------------------
+
+  if (isUnder(pathname, "/dashboard")) {
+    // Anonymous sessions are created by the public booking flow to satisfy the
+    // RLS policy on booking_requests. They are not accounts, so they don't get
+    // in here.
+    if (!user || user.is_anonymous) {
+      const target = encodeURIComponent(`${pathname}${search}`);
+      return redirectTo(
+        request,
+        GUEST_LOGIN_PATH,
+        `?redirect=${target}`,
+        response
+      );
+    }
+
+    return response;
+  }
+
+  // -------------------------------------------------------------------------
+  // Admin
+  // -------------------------------------------------------------------------
+
+  const isLoginRoute = pathname === ADMIN_LOGIN_PATH;
+
   if (!user) {
     if (isLoginRoute) return response;
-    return redirectTo(request, LOGIN_PATH, "", response);
+    return redirectTo(request, ADMIN_LOGIN_PATH, "", response);
   }
 
   // One profiles read per request — the proxy runs once per navigation, so
@@ -80,12 +117,16 @@ export async function proxy(request: NextRequest) {
   const admin = profile?.is_admin === true;
 
   if (!admin) {
-    // Signed in, but not an admin. Anonymous sessions land here too — the
-    // public booking flow signs guests in anonymously, and they may later
-    // wander to /admin. The login page stays reachable so they can sign in
-    // with real admin credentials.
+    // Signed in, but not an admin — a guest account or an anonymous booking
+    // session that wandered to /admin. The login page stays reachable so they
+    // can sign in with real admin credentials.
     if (isLoginRoute) return response;
-    return redirectTo(request, LOGIN_PATH, "?error=access-denied", response);
+    return redirectTo(
+      request,
+      ADMIN_LOGIN_PATH,
+      "?error=access-denied",
+      response
+    );
   }
 
   // An admin who is already signed in has no business on the login page.
@@ -97,5 +138,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/dashboard/:path*"],
 };

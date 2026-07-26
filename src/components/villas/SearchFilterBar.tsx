@@ -1,10 +1,17 @@
 "use client";
 
+import { useMemo } from "react";
 import { MapPin, Calendar, Users, SlidersHorizontal } from "lucide-react";
+import DestinationAutocomplete, {
+  type DestinationOption,
+} from "@/components/shared/DestinationAutocomplete";
+import { useTodayISO } from "@/lib/use-today";
+import { Destination } from "@/types";
 import PriceRangeSlider from "./PriceRangeSlider";
 
 export default function SearchFilterBar({
-  destinationNames,
+  destinations,
+  destinationCounts,
   selectedDestination,
   onDestinationChange,
   checkIn,
@@ -18,9 +25,12 @@ export default function SearchFilterBar({
   onPriceRangeChange,
   onOpenMobileFilters,
 }: {
-  destinationNames: string[];
+  destinations: Destination[];
+  /** Live villa counts keyed by destination name. */
+  destinationCounts: Record<string, number>;
+  /** Slug of the selected destination, or "" for all / more than one. */
   selectedDestination: string;
-  onDestinationChange: (value: string) => void;
+  onDestinationChange: (slug: string) => void;
   checkIn: string;
   checkOut: string;
   onCheckInChange: (value: string) => void;
@@ -32,6 +42,24 @@ export default function SearchFilterBar({
   onPriceRangeChange: (value: [number, number]) => void;
   onOpenMobileFilters: () => void;
 }) {
+  const today = useTodayISO();
+
+  const options = useMemo<DestinationOption[]>(
+    () =>
+      destinations.map((d) => ({
+        id: d.id,
+        name: d.name,
+        slug: d.slug,
+        villaCount: destinationCounts[d.name] ?? 0,
+      })),
+    [destinations, destinationCounts]
+  );
+
+  const handleCheckInChange = (value: string) => {
+    onCheckInChange(value);
+    if (checkOut && value && checkOut <= value) onCheckOutChange("");
+  };
+
   return (
     <div className="sticky top-18 z-40 bg-linen/95 backdrop-blur-sm border-b border-pebble">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 py-4">
@@ -45,22 +73,17 @@ export default function SearchFilterBar({
         </button>
 
         <div className="hidden md:flex md:items-center md:gap-6">
-          <label className="flex items-center gap-2 min-w-[150px]">
+          <div className="flex items-center gap-2 min-w-[180px]">
             <MapPin size={16} className="text-slate shrink-0" />
-            <select
+            <DestinationAutocomplete
+              inputId="villas-destination"
+              options={options}
               value={selectedDestination}
-              onChange={(e) => onDestinationChange(e.target.value)}
-              aria-label="Destination"
-              className="cursor-pointer w-full bg-transparent text-sm text-charcoal outline-none"
-            >
-              <option value="">All destinations</option>
-              {destinationNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={onDestinationChange}
+              placeholder="All destinations"
+              inputClassName="w-full bg-transparent text-sm text-charcoal outline-none placeholder:text-slate/70"
+            />
+          </div>
 
           <div className="w-px h-8 bg-pebble" />
 
@@ -69,7 +92,8 @@ export default function SearchFilterBar({
             <input
               type="date"
               value={checkIn}
-              onChange={(e) => onCheckInChange(e.target.value)}
+              min={today}
+              onChange={(e) => handleCheckInChange(e.target.value)}
               aria-label="Check in"
               className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
             />
@@ -82,6 +106,7 @@ export default function SearchFilterBar({
             <input
               type="date"
               value={checkOut}
+              min={checkIn || today}
               onChange={(e) => onCheckOutChange(e.target.value)}
               aria-label="Check out"
               className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
@@ -94,10 +119,11 @@ export default function SearchFilterBar({
             <Users size={16} className="text-slate shrink-0" />
             <input
               type="number"
-              min={0}
+              min={1}
               value={guests || ""}
               placeholder="Guests"
               onChange={(e) => onGuestsChange(Number(e.target.value) || 0)}
+              aria-label="Guests"
               className="w-20 bg-transparent text-sm text-charcoal outline-none placeholder:text-slate/70"
             />
           </label>

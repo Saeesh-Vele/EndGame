@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Destination } from "@/types";
 
 export default function Destinations({
@@ -15,9 +16,9 @@ export default function Destinations({
 
         <div className="mt-10 flex gap-5 overflow-x-auto pb-2 sm:pb-0 sm:overflow-visible sm:grid sm:grid-cols-4 sm:gap-6 -mx-5 px-5 sm:mx-0 sm:px-0">
           {destinations.map((destination) => (
-            <a
+            <Link
               key={destination.id}
-              href="#"
+              href={`/villas?destination=${destination.slug}`}
               className="group cursor-pointer relative shrink-0 w-[220px] sm:w-auto aspect-[3/4] rounded-2xl overflow-hidden"
             >
               <Image
@@ -33,10 +34,11 @@ export default function Destinations({
                   {destination.name}
                 </h3>
                 <p className="mt-1 text-white/80 text-sm">
-                  {destination.villa_count} villas
+                  {destination.villa_count}{" "}
+                  {destination.villa_count === 1 ? "villa" : "villas"}
                 </p>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

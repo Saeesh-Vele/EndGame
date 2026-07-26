@@ -1,7 +1,12 @@
 import Image from "next/image";
 import SearchPanel from "./SearchPanel";
+import { Destination } from "@/types";
 
-export default function HeroSection() {
+export default function HeroSection({
+  destinations,
+}: {
+  destinations: Destination[];
+}) {
   return (
     <section className="relative">
       <div className="relative h-[640px] sm:h-[720px] w-full overflow-hidden">
@@ -25,7 +30,7 @@ export default function HeroSection() {
         </div>
       </div>
 
-      <SearchPanel />
+      <SearchPanel destinations={destinations} />
     </section>
   );
 }

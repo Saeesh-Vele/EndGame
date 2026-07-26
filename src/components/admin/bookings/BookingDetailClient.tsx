@@ -26,13 +26,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import StatusBadge from "@/components/admin/StatusBadge";
+import BookingStatusBadge from "@/components/shared/BookingStatusBadge";
 import {
   deleteBooking,
   updateBookingNotes,
   updateBookingStatus,
 } from "@/app/admin/actions";
-import { AdminBookingRequest, BookingRequest } from "@/types";
+import { BookingRequestWithVilla, BookingRequest } from "@/types";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -57,7 +57,7 @@ const STATUS_OPTIONS: BookingRequest["status"][] = [
 export default function BookingDetailClient({
   booking,
 }: {
-  booking: AdminBookingRequest;
+  booking: BookingRequestWithVilla;
 }) {
   const router = useRouter();
   const [notes, setNotes] = useState(booking.admin_notes ?? "");
@@ -121,7 +121,7 @@ export default function BookingDetailClient({
             Requested {formatDate(booking.created_at)}
           </p>
         </div>
-        <StatusBadge status={booking.status} />
+        <BookingStatusBadge status={booking.status} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">

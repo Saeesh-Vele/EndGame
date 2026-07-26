@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, Star, Users, BedDouble, Waves } from "lucide-react";
+import { useSession } from "@/components/shared/SessionProvider";
 import { Villa } from "@/types";
 
 const amenityIcon = (label: string) => {
@@ -13,7 +13,8 @@ const amenityIcon = (label: string) => {
 };
 
 export default function VillaCard({ villa }: { villa: Villa }) {
-  const [saved, setSaved] = useState(false);
+  const { isSaved, toggleSaved } = useSession();
+  const saved = isSaved(villa.id);
 
   return (
     <Link href={`/villas/${villa.slug}`} className="group block cursor-pointer">
@@ -35,12 +36,18 @@ export default function VillaCard({ villa }: { villa: Villa }) {
         <button
           type="button"
           onClick={(e) => {
+            // The whole card is a <Link>; without this the click navigates.
             e.preventDefault();
             e.stopPropagation();
-            setSaved((v) => !v);
+            toggleSaved(villa.id);
           }}
           aria-label={saved ? "Remove from saved" : "Save villa"}
-          className="cursor-pointer absolute top-3 right-3 flex items-center justify-center h-9 w-9 rounded-full bg-white/0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-200"
+          aria-pressed={saved}
+          // A saved villa keeps its heart visible — otherwise the state is
+          // invisible until you happen to hover the card.
+          className={`cursor-pointer absolute top-3 right-3 flex items-center justify-center h-9 w-9 rounded-full bg-white/0 transition-opacity duration-200 focus-visible:opacity-100 group-hover:opacity-100 ${
+            saved ? "opacity-100" : "opacity-0"
+          }`}
         >
           <Heart
             size={20}

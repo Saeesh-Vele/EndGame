@@ -15,7 +15,7 @@ const STATUS_LABELS: Record<BookingRequest["status"], string> = {
   completed: "Completed",
 };
 
-export default function StatusBadge({
+export default function BookingStatusBadge({
   status,
 }: {
   status: BookingRequest["status"];

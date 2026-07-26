@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import VillaCard from "@/components/home/VillaCard";
 import SearchFilterBar from "./SearchFilterBar";
 import FilterSidebar from "./FilterSidebar";
@@ -23,11 +23,18 @@ type SortOption = "recommended" | "price-asc" | "price-desc" | "rating";
 export default function VillasPageClient({
   villas,
   destinations,
-  initialDestination,
+  initialDestinations,
+  initialCheckIn,
+  initialCheckOut,
+  initialGuests,
 }: {
   villas: Villa[];
   destinations: Destination[];
-  initialDestination?: string;
+  /** Destination *names*, already resolved from the URL's slugs. */
+  initialDestinations: string[];
+  initialCheckIn: string;
+  initialCheckOut: string;
+  initialGuests: number;
 }) {
   const priceBounds = useMemo<[number, number]>(() => {
     const prices = villas.map((v) => v.price_per_night);
@@ -36,15 +43,14 @@ export default function VillasPageClient({
     return [lo, hi];
   }, [villas]);
 
-  const [selectedDestinations, setSelectedDestinations] = useState<string[]>(
-    initialDestination ? [initialDestination] : []
-  );
+  const [selectedDestinations, setSelectedDestinations] =
+    useState<string[]>(initialDestinations);
   const [priceRange, setPriceRange] = useState<[number, number]>(priceBounds);
   const [bedroomsMin, setBedroomsMin] = useState(0);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [guests, setGuests] = useState(0);
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  const [guests, setGuests] = useState(initialGuests);
+  const [checkIn, setCheckIn] = useState(initialCheckIn);
+  const [checkOut, setCheckOut] = useState(initialCheckOut);
   const [sort, setSort] = useState<SortOption>("recommended");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -53,6 +59,20 @@ export default function VillasPageClient({
     [destinations]
   );
 
+  // The sidebar checkboxes key off destination names (that's what a villa row
+  // carries), the URL and the search bar key off slugs. These bridge the two.
+  const slugByName = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const d of destinations) map[d.name] = d.slug;
+    return map;
+  }, [destinations]);
+
+  const nameBySlug = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const d of destinations) map[d.slug] = d.name;
+    return map;
+  }, [destinations]);
+
   const destinationCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const villa of villas) {
@@ -60,6 +80,40 @@ export default function VillasPageClient({
     }
     return counts;
   }, [villas]);
+
+  const selectedSlugs = useMemo(
+    () =>
+      selectedDestinations
+        .map((name) => slugByName[name])
+        .filter(Boolean)
+        .join(","),
+    [selectedDestinations, slugByName]
+  );
+
+  // Mirror the search-bar fields into the URL so the page is linkable and a
+  // refresh keeps the filters. replaceState rather than pushState: typing in
+  // the guests box shouldn't bury the previous page under history entries.
+  // This never re-renders the server component, so it can't fight the props.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    const put = (key: string, value: string) => {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    };
+
+    put("destination", selectedSlugs);
+    put("checkIn", checkIn);
+    put("checkOut", checkOut);
+    put("guests", guests > 0 ? String(guests) : "");
+
+    const query = params.toString();
+    const next = `${window.location.pathname}${query ? `?${query}` : ""}`;
+
+    if (next !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [selectedSlugs, checkIn, checkOut, guests]);
 
   const toggleDestination = (name: string) => {
     setSelectedDestinations((prev) =>
@@ -130,16 +184,23 @@ export default function VillasPageClient({
     }
   }, [filtered, sort]);
 
-  const singleDestinationValue =
-    selectedDestinations.length === 1 ? selectedDestinations[0] : "";
+  // The bar's dropdown is single-select; with two or more destinations ticked
+  // in the sidebar there's no single slug that represents the selection, so it
+  // shows as empty rather than lying about which one is active.
+  const singleDestinationSlug =
+    selectedDestinations.length === 1
+      ? (slugByName[selectedDestinations[0]] ?? "")
+      : "";
 
-  const handleDestinationDropdownChange = (value: string) => {
-    setSelectedDestinations(value ? [value] : []);
+  const handleDestinationDropdownChange = (slug: string) => {
+    const name = nameBySlug[slug];
+    setSelectedDestinations(name ? [name] : []);
   };
 
-  const headingText = initialDestination
-    ? `Villas in ${initialDestination}`
-    : "All villas";
+  const headingText =
+    selectedDestinations.length === 1
+      ? `Villas in ${selectedDestinations[0]}`
+      : "All villas";
 
   const sharedFieldProps = {
     destinationNames,
@@ -168,8 +229,9 @@ export default function VillasPageClient({
       </div>
 
       <SearchFilterBar
-        destinationNames={destinationNames}
-        selectedDestination={singleDestinationValue}
+        destinations={destinations}
+        destinationCounts={destinationCounts}
+        selectedDestination={singleDestinationSlug}
         onDestinationChange={handleDestinationDropdownChange}
         checkIn={checkIn}
         checkOut={checkOut}

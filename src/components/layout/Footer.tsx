@@ -1,17 +1,36 @@
+import Link from "next/link";
 import { MessageCircle } from "lucide-react";
+import { SITE_SOCIAL, whatsappHref } from "@/lib/site";
 
-const columns = [
+// Destination slugs are hardcoded rather than fetched: the footer renders on
+// every page including ones that don't otherwise touch the database, and these
+// four are the launch set. If a slug is renamed in the admin, /villas simply
+// ignores an unknown ?destination and shows everything.
+const columns: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Destinations",
-    links: ["Goa", "Lonavala", "Udaipur", "Alibaug"],
+    links: [
+      { label: "Goa", href: "/villas?destination=goa" },
+      { label: "Lonavala", href: "/villas?destination=lonavala" },
+      { label: "Udaipur", href: "/villas?destination=udaipur" },
+      { label: "Alibaug", href: "/villas?destination=alibaug" },
+    ],
   },
   {
     title: "Company",
-    links: ["About us", "Careers", "List your villa", "Contact"],
+    links: [
+      { label: "About us", href: "/about" },
+      { label: "List your villa", href: "/list-your-villa" },
+      { label: "Contact", href: "/about#contact" },
+    ],
   },
   {
     title: "Legal",
-    links: ["Terms of service", "Privacy policy", "Cancellation policy"],
+    links: [
+      { label: "Terms of service", href: "/terms" },
+      { label: "Privacy policy", href: "/privacy" },
+      { label: "Cancellation policy", href: "/cancellation-policy" },
+    ],
   },
 ];
 
@@ -35,13 +54,13 @@ export default function Footer() {
               </h3>
               <ul className="flex flex-col gap-3">
                 {col.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
                       className="cursor-pointer text-sm transition-colors duration-200 hover:text-white"
                     >
-                      {link}
-                    </a>
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -55,7 +74,9 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-4">
             <a
-              href="#"
+              href={SITE_SOCIAL.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="Instagram"
               className="cursor-pointer transition-colors duration-200 hover:text-white"
             >
@@ -80,7 +101,9 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="#"
+              href={SITE_SOCIAL.x}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="X"
               className="cursor-pointer transition-colors duration-200 hover:text-white"
             >
@@ -94,7 +117,9 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="#"
+              href={whatsappHref("Hi StayVilla, I have a question.")}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="WhatsApp"
               className="cursor-pointer transition-colors duration-200 hover:text-white"
             >

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function CTASection() {
   return (
     <section className="bg-forest">
@@ -10,12 +12,12 @@ export default function CTASection() {
           private stay, not a room in a hotel. No listing fees, no
           middlemen — just direct bookings.
         </p>
-        <a
-          href="#"
+        <Link
+          href="/list-your-villa"
           className="cursor-pointer inline-block mt-8 rounded-xl bg-white text-forest text-sm font-medium px-7 py-3.5 transition-colors duration-200 hover:bg-linen"
         >
           List your villa
-        </a>
+        </Link>
       </div>
     </section>
   );
