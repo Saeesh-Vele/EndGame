@@ -1,7 +1,9 @@
 "use server";
 
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createVillaSubmission } from "@/lib/supabase/queries";
+import { notifyNewSubmission } from "@/lib/notifications";
 import { ALL_AMENITIES } from "@/lib/amenities";
 
 export interface VillaSubmissionFormValues {
@@ -128,7 +130,7 @@ export async function submitVillaListing(
   try {
     const supabase = await createClient();
 
-    await createVillaSubmission(supabase, {
+    const submissionId = await createVillaSubmission(supabase, {
       owner_name: ownerName,
       owner_email: ownerEmail,
       owner_phone: ownerPhone,
@@ -143,6 +145,27 @@ export async function submitVillaListing(
       price_per_night: pricePerNight.value,
       weekend_price: weekendPrice.value,
       message: clean(values.message, LIMITS.message) || undefined,
+    });
+
+    // Admin only — the owner already sees a confirmation in the UI, so there's
+    // no acknowledgement email to send them. Runs after the response so a mail
+    // failure can't discard a submission that's already saved.
+    after(async () => {
+      try {
+        await notifyNewSubmission({
+          submissionId,
+          villaName,
+          ownerName,
+          ownerEmail,
+          ownerPhone,
+          location,
+          bedrooms: bedrooms.value,
+          maxGuests: maxGuests.value,
+          pricePerNight: pricePerNight.value,
+        });
+      } catch (mailError) {
+        console.error("[email] new submission notification failed:", mailError);
+      }
     });
 
     return { success: true };

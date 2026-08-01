@@ -21,9 +21,12 @@ import { Destination, Villa } from "@/types";
 export default function VillasPageClient({
   villas,
   destinations,
+  whatsappClicks,
 }: {
   villas: Villa[];
   destinations: Destination[];
+  /** Total WhatsApp link clicks, keyed by villa id. */
+  whatsappClicks: Record<string, number>;
 }) {
   const [search, setSearch] = useState("");
   const [destinationFilter, setDestinationFilter] = useState("all");
@@ -83,7 +86,7 @@ export default function VillasPageClient({
       </p>
 
       <div className="mt-3">
-        <VillasTable villas={filtered} />
+        <VillasTable villas={filtered} whatsappClicks={whatsappClicks} />
       </div>
     </>
   );

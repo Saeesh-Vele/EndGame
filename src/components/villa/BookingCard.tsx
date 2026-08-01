@@ -2,7 +2,10 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { MessageCircle, Minus, Plus } from "lucide-react";
-import { submitBookingRequest } from "@/app/villas/[slug]/actions";
+import {
+  logWhatsappInquiry,
+  submitBookingRequest,
+} from "@/app/villas/[slug]/actions";
 import { useSession } from "@/components/shared/SessionProvider";
 
 function formatINR(amount: number) {
@@ -299,6 +302,12 @@ export default function BookingCard({
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
+        // Fire-and-forget: the link opens in a new tab either way, so this
+        // must not be awaited or allowed to block navigation. Guests leave
+        // for WhatsApp here, which makes it the last signal we get.
+        onClick={() => {
+          void logWhatsappInquiry(villaId);
+        }}
         className="cursor-pointer mt-4 flex items-center justify-center gap-2 text-sm text-forest hover:text-forest-light transition-colors duration-200"
       >
         <MessageCircle size={16} />

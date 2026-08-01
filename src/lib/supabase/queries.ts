@@ -51,6 +51,7 @@ interface VillaRow {
   is_superhost: boolean;
   owner_whatsapp: string | null;
   owner_name: string | null;
+  owner_email: string | null;
   host_since: string | null;
   is_active: boolean;
   created_at: string;
@@ -98,6 +99,20 @@ function mapDestination(row: DestinationRow): Destination {
   };
 }
 
+/**
+ * Row → Villa for the public site.
+ *
+ * Deliberately drops owner_email. A Villa is serialised into the HTML of every
+ * villa card and detail page, so anything mapped here is readable by anyone
+ * who views source — owner_whatsapp is in because the WhatsApp CTA is the
+ * point of a listing; an owner's email address is not. Admin screens that
+ * genuinely need it use mapVillaForAdmin instead.
+ *
+ * Note this controls what *we* return, not what the table permits: RLS in
+ * Postgres is row-level, so a hand-crafted PostgREST query could still select
+ * the column. Add column grants (as migration 005 does for profiles.is_admin)
+ * if that gap matters.
+ */
 function mapVilla(row: VillaRow): Villa {
   return {
     id: row.id,
@@ -128,6 +143,11 @@ function mapVilla(row: VillaRow): Villa {
     is_active: row.is_active,
     created_at: row.created_at,
   };
+}
+
+/** Row → Villa including owner_email, for the admin villa screens. */
+function mapVillaForAdmin(row: VillaRow): Villa {
+  return { ...mapVilla(row), owner_email: row.owner_email ?? undefined };
 }
 
 function mapReview(row: ReviewRow): Review {
@@ -397,6 +417,7 @@ export interface VillaInput {
   images: string[];
   owner_whatsapp?: string;
   owner_name?: string;
+  owner_email?: string;
   is_active: boolean;
 }
 
@@ -410,7 +431,7 @@ export async function getVillasForAdmin(
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []).map(mapVilla);
+  return (data ?? []).map(mapVillaForAdmin);
 }
 
 /** Single villa by primary key, active or not. For the admin edit form. */
@@ -425,7 +446,7 @@ export async function getVillaById(
     .maybeSingle();
 
   if (error) throw error;
-  return data ? mapVilla(data) : null;
+  return data ? mapVillaForAdmin(data) : null;
 }
 
 export async function createVilla(
@@ -439,7 +460,7 @@ export async function createVilla(
     .single();
 
   if (error) throw error;
-  return mapVilla(data);
+  return mapVillaForAdmin(data);
 }
 
 export async function updateVilla(
@@ -455,7 +476,7 @@ export async function updateVilla(
     .single();
 
   if (error) throw error;
-  return mapVilla(data);
+  return mapVillaForAdmin(data);
 }
 
 export async function deleteVilla(
@@ -638,6 +659,7 @@ export async function getAdminDashboardStats(client: SupabaseClient): Promise<{
   villas: number;
   pendingBookings: number;
   inquiriesThisMonth: number;
+  whatsappInquiriesThisMonth: number;
   pendingSubmissions: number;
   destinations: number;
 }> {
@@ -645,7 +667,7 @@ export async function getAdminDashboardStats(client: SupabaseClient): Promise<{
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const [villas, pending, thisMonth, submissions, destinations] =
+  const [villas, pending, thisMonth, whatsapp, submissions, destinations] =
     await Promise.all([
       client.from("villas").select("id", { count: "exact", head: true }),
       client
@@ -654,6 +676,10 @@ export async function getAdminDashboardStats(client: SupabaseClient): Promise<{
         .eq("status", "pending"),
       client
         .from("booking_requests")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", startOfMonth.toISOString()),
+      client
+        .from("whatsapp_clicks")
         .select("id", { count: "exact", head: true })
         .gte("created_at", startOfMonth.toISOString()),
       client
@@ -667,6 +693,7 @@ export async function getAdminDashboardStats(client: SupabaseClient): Promise<{
     villas.error ??
     pending.error ??
     thisMonth.error ??
+    whatsapp.error ??
     submissions.error ??
     destinations.error;
   if (firstError) throw firstError;
@@ -675,6 +702,7 @@ export async function getAdminDashboardStats(client: SupabaseClient): Promise<{
     villas: villas.count ?? 0,
     pendingBookings: pending.count ?? 0,
     inquiriesThisMonth: thisMonth.count ?? 0,
+    whatsappInquiriesThisMonth: whatsapp.count ?? 0,
     pendingSubmissions: submissions.count ?? 0,
     destinations: destinations.count ?? 0,
   };
@@ -748,18 +776,25 @@ export interface VillaSubmissionInput {
 }
 
 /**
- * Inserts a submission from the public form.
+ * Inserts a submission from the public form and returns its id.
  *
  * Deliberately no `.select()`: the insert policy is open to everyone, but
  * there is no select policy for non-admins, so asking for the row back would
- * make the whole statement fail under RLS.
+ * make the whole statement fail under RLS. The id is therefore generated here
+ * rather than read back — the admin notification email needs it to link to
+ * /admin/submissions/{id}.
  */
 export async function createVillaSubmission(
   client: SupabaseClient,
   input: VillaSubmissionInput
-): Promise<void> {
-  const { error } = await client.from("villa_submissions").insert(input);
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const { error } = await client
+    .from("villa_submissions")
+    .insert({ id, ...input });
+
   if (error) throw error;
+  return id;
 }
 
 /** Admin-only per RLS. */
@@ -824,6 +859,111 @@ export async function countPendingVillaSubmissions(
 
   if (error) throw error;
   return count ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Notification support
+// ---------------------------------------------------------------------------
+
+export interface VillaNotificationContext {
+  name: string;
+  slug: string;
+  owner_name?: string;
+  owner_whatsapp?: string;
+  owner_email?: string;
+}
+
+/**
+ * The few villa fields the notification emails need.
+ *
+ * Its own query rather than getVillaById because the booking flow runs under
+ * the guest's session, where the public VILLA_SELECT deliberately omits
+ * owner_email. This asks for it explicitly, and the address is only ever used
+ * as a send target — it isn't returned to the browser.
+ */
+export async function getVillaNotificationContext(
+  client: SupabaseClient,
+  villaId: string
+): Promise<VillaNotificationContext | null> {
+  const { data, error } = await client
+    .from("villas")
+    .select("name, slug, owner_name, owner_whatsapp, owner_email")
+    .eq("id", villaId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    name: data.name,
+    slug: data.slug,
+    owner_name: data.owner_name ?? undefined,
+    owner_whatsapp: data.owner_whatsapp ?? undefined,
+    owner_email: data.owner_email ?? undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// WhatsApp inquiry tracking
+//
+// Guests leave the site when they open WhatsApp, so a click on that link is
+// the last signal we get and the closest thing to a conversion metric here.
+// ---------------------------------------------------------------------------
+
+/** Records one click. Insert is open to everyone; reads are admin-only. */
+export async function logWhatsappClick(
+  client: SupabaseClient,
+  villaId: string,
+  userId?: string
+): Promise<void> {
+  const { error } = await client
+    .from("whatsapp_clicks")
+    .insert({ villa_id: villaId, user_id: userId ?? null });
+
+  if (error) throw error;
+}
+
+/** Total clicks per villa id. Admin-only per RLS. */
+export async function getWhatsappClickCountsByVilla(
+  client: SupabaseClient
+): Promise<Record<string, number>> {
+  const { data, error } = await client
+    .from("whatsapp_clicks")
+    .select("villa_id");
+
+  if (error) throw error;
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const id = (row as { villa_id: string }).villa_id;
+    counts[id] = (counts[id] ?? 0) + 1;
+  }
+  return counts;
+}
+
+// ---------------------------------------------------------------------------
+// Contact messages — the form on /about.
+// ---------------------------------------------------------------------------
+
+export interface ContactMessageInput {
+  name: string;
+  email: string;
+  message: string;
+}
+
+/**
+ * Inserts a contact message.
+ *
+ * No `.select()`, for the same reason as createVillaSubmission: insert is open
+ * to everyone but there's no select policy for non-admins, so asking for the
+ * row back would fail the whole statement under RLS.
+ */
+export async function createContactMessage(
+  client: SupabaseClient,
+  input: ContactMessageInput
+): Promise<void> {
+  const { error } = await client.from("contact_messages").insert(input);
+  if (error) throw error;
 }
 
 // ---------------------------------------------------------------------------

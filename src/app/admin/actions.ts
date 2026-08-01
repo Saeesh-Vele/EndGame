@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin, signOut } from "@/lib/supabase/admin";
 import { deleteVillaImagesByUrl } from "@/lib/supabase/storage";
+import { notifyBookingStatusChange } from "@/lib/notifications";
 import {
   countVillasInDestination,
   createDestination as insertDestination,
@@ -14,6 +16,7 @@ import {
   deleteVilla as removeVilla,
   deleteVillaSubmission as removeSubmission,
   getVillaById,
+  getVillaNotificationContext,
   updateBookingRequest,
   updateDestination as patchDestination,
   updateVilla as patchVilla,
@@ -84,6 +87,7 @@ export interface VillaFormValues {
   images: string[];
   owner_name: string;
   owner_whatsapp: string;
+  owner_email: string;
   is_active: boolean;
 }
 
@@ -106,6 +110,7 @@ function toVillaInput(values: VillaFormValues): VillaInput {
     images: values.images,
     owner_name: values.owner_name,
     owner_whatsapp: values.owner_whatsapp,
+    owner_email: values.owner_email,
     is_active: values.is_active,
   };
 }
@@ -208,8 +213,31 @@ export async function updateBookingStatus(
   if (!client) return { success: false, error };
 
   try {
-    await updateBookingRequest(client, id, { status });
+    const booking = await updateBookingRequest(client, id, { status });
     revalidateBookings(id);
+
+    // Tell the guest, after the response. A mail failure must not make the
+    // status change look like it didn't happen — it already has.
+    after(async () => {
+      try {
+        const villa = await getVillaNotificationContext(
+          client,
+          booking.villa_id
+        );
+        if (!villa || !booking.guest_email) return;
+
+        await notifyBookingStatusChange({
+          status,
+          guestEmail: booking.guest_email,
+          villa,
+          checkIn: booking.check_in,
+          checkOut: booking.check_out,
+        });
+      } catch (mailError) {
+        console.error("[email] booking status notification failed:", mailError);
+      }
+    });
+
     return { success: true };
   } catch (err) {
     return failure(err, "Couldn't update the booking status.");

@@ -77,6 +77,7 @@ export default function VillaForm({
   const [ownerWhatsapp, setOwnerWhatsapp] = useState(
     villa?.owner_whatsapp ?? ""
   );
+  const [ownerEmail, setOwnerEmail] = useState(villa?.owner_email ?? "");
   const [isActive, setIsActive] = useState(villa?.is_active ?? true);
 
   const toggleAmenity = (amenity: string) => {
@@ -138,6 +139,7 @@ export default function VillaForm({
       images: images.length > 0 ? images : [PLACEHOLDER_IMAGE],
       owner_whatsapp: ownerWhatsapp.trim(),
       owner_name: ownerName.trim(),
+      owner_email: ownerEmail.trim(),
       is_active: isActive,
     };
 
@@ -372,6 +374,20 @@ export default function VillaForm({
               onChange={(e) => setOwnerWhatsapp(e.target.value)}
               placeholder="+919876543210"
             />
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Label htmlFor="owner-email">Owner email</Label>
+            <Input
+              id="owner-email"
+              type="email"
+              value={ownerEmail}
+              onChange={(e) => setOwnerEmail(e.target.value)}
+              placeholder="owner@example.com"
+            />
+            <p className="text-xs text-slate">
+              Optional. When set, the owner is emailed about new inquiries as
+              well as getting the WhatsApp message.
+            </p>
           </div>
         </div>
 

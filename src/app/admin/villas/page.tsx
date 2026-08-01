@@ -3,15 +3,20 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VillasPageClient from "@/components/admin/villas/VillasPageClient";
 import { createClient } from "@/lib/supabase/server";
-import { getDestinations, getVillasForAdmin } from "@/lib/supabase/queries";
+import {
+  getDestinations,
+  getVillasForAdmin,
+  getWhatsappClickCountsByVilla,
+} from "@/lib/supabase/queries";
 
 export default async function AdminVillasPage() {
   const supabase = await createClient();
 
   // getVillasForAdmin includes inactive villas — the public listing doesn't.
-  const [villas, destinations] = await Promise.all([
+  const [villas, destinations, whatsappClicks] = await Promise.all([
     getVillasForAdmin(supabase),
     getDestinations(supabase),
+    getWhatsappClickCountsByVilla(supabase),
   ]);
 
   return (
@@ -31,7 +36,11 @@ export default async function AdminVillasPage() {
         </Button>
       </div>
 
-      <VillasPageClient villas={villas} destinations={destinations} />
+      <VillasPageClient
+        villas={villas}
+        destinations={destinations}
+        whatsappClicks={whatsappClicks}
+      />
     </div>
   );
 }

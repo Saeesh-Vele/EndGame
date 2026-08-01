@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Mail, MessageCircle } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import ContactForm from "@/components/about/ContactForm";
 import { SITE_CONTACT, whatsappHref } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -203,6 +204,18 @@ export default function AboutPage() {
               <p className="mt-4 text-sm text-charcoal">WhatsApp</p>
               <p className="mt-1 text-sm text-slate">{SITE_CONTACT.whatsapp}</p>
             </a>
+          </div>
+
+          <div className="mt-10">
+            <h3 className="text-base font-medium text-charcoal">
+              Or send us a message
+            </h3>
+            <p className="mt-1 text-sm text-slate">
+              We read everything that comes through here.
+            </p>
+            <div className="mt-6">
+              <ContactForm />
+            </div>
           </div>
         </section>
       </main>

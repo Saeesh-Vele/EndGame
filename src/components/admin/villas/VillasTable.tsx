@@ -12,7 +12,13 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, Pencil, Trash2, Star } from "lucide-react";
+import {
+  ArrowUpDown,
+  MessageCircle,
+  Pencil,
+  Trash2,
+  Star,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -61,7 +67,14 @@ function SortButton({
   );
 }
 
-export default function VillasTable({ villas }: { villas: Villa[] }) {
+export default function VillasTable({
+  villas,
+  whatsappClicks,
+}: {
+  villas: Villa[];
+  /** Total WhatsApp link clicks, keyed by villa id. */
+  whatsappClicks: Record<string, number>;
+}) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pending, startTransition] = useTransition();
@@ -160,6 +173,34 @@ export default function VillasTable({ villas }: { villas: Villa[] }) {
           {row.original.rating.toFixed(2)}
         </span>
       ),
+    },
+    {
+      id: "whatsapp_clicks",
+      // Sorted through an accessorFn so the column sorts on the number rather
+      // than on a Villa field that doesn't carry it.
+      accessorFn: (villa) => whatsappClicks[villa.id] ?? 0,
+      header: ({ column }) => (
+        <SortButton
+          label="WhatsApp"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        />
+      ),
+      cell: ({ row }) => {
+        const clicks = whatsappClicks[row.original.id] ?? 0;
+        return (
+          <span
+            className={`flex items-center gap-1.5 text-sm ${
+              clicks > 0 ? "text-charcoal" : "text-slate"
+            }`}
+            title={`${clicks} WhatsApp ${
+              clicks === 1 ? "inquiry" : "inquiries"
+            } all time`}
+          >
+            <MessageCircle size={13} className="text-slate" />
+            {clicks}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "is_active",

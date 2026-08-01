@@ -31,6 +31,8 @@ export interface Villa {
   is_superhost: boolean;
   owner_whatsapp: string;
   owner_name?: string;
+  /** Optional. When set, the owner is emailed about new inquiries too. */
+  owner_email?: string;
   host_since?: string;
   is_active: boolean;
   created_at: string;
