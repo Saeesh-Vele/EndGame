@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/components/shared/SessionProvider";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const links = [
   { label: "Villas", href: "/villas" },
@@ -46,6 +48,17 @@ export default function Navbar({
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, [transparent]);
+
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
   const isSolid = !transparent || scrolled;
 
@@ -119,28 +132,26 @@ export default function Navbar({
           </nav>
 
           <div className="hidden md:flex items-center gap-6">
-            {/* Nothing until the session resolves — better a beat of empty
-                space than "Sign in" flashing at someone who is signed in. */}
             {loading ? (
-              <span className="h-9 w-9" aria-hidden />
+              <span className="h-9 w-9 rounded-full bg-pebble/50 animate-pulse" aria-hidden />
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Account menu"
-                    className={`cursor-pointer flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors duration-200 ${
+                  <button type="button" aria-label="Account menu" className="cursor-pointer outline-none">
+                    <Avatar className={`h-9 w-9 transition-all duration-200 ${
                       isSolid
                         ? "bg-forest text-white hover:bg-forest-light"
                         : "bg-white/90 text-forest hover:bg-white"
-                    }`}
-                  >
-                    {initialOf(displayName)}
+                    }`}>
+                      <AvatarFallback className="text-xs font-semibold">
+                        {initialOf(displayName)}
+                      </AvatarFallback>
+                    </Avatar>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
                   <DropdownMenuLabel className="font-normal">
-                    <p className="text-sm text-charcoal truncate">
+                    <p className="text-sm text-charcoal truncate font-medium">
                       {displayName}
                     </p>
                     <p className="text-xs text-slate truncate">{user.email}</p>
@@ -163,7 +174,7 @@ export default function Navbar({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={handleSignOut}
-                    className="cursor-pointer"
+                    className="cursor-pointer text-destructive focus:text-destructive"
                   >
                     <LogOut size={15} />
                     Sign out
@@ -173,43 +184,42 @@ export default function Navbar({
             ) : (
               <Link
                 href="/auth/login"
-                className={`cursor-pointer text-sm transition-colors duration-200 ${linkClass}`}
+                className={`cursor-pointer text-sm font-medium transition-colors duration-200 ${linkClass}`}
               >
                 Sign in
               </Link>
             )}
 
-            <Link
-              href="/list-your-villa"
-              className="cursor-pointer rounded-xl bg-forest hover:bg-forest-light active:bg-forest-dark text-white text-sm font-medium px-5 py-2.5 transition-colors duration-200"
-            >
-              List your villa
-            </Link>
+            <Button asChild size="default">
+              <Link href="/list-your-villa">List your villa</Link>
+            </Button>
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => setMenuOpen((v) => !v)}
-            className={`md:hidden cursor-pointer p-2 ${
+            className={`md:hidden min-h-[44px] min-w-[44px] ${
               isSolid ? "text-charcoal" : "text-white"
             }`}
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
           >
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+          </Button>
         </div>
       </div>
 
       {menuOpen && (
-        <div className="md:hidden bg-linen border-t border-pebble">
+        <div className="md:hidden bg-linen border-t border-pebble max-h-[calc(100vh-4.5rem)] overflow-y-auto">
           <div className="px-5 py-5 flex flex-col gap-4">
             {links.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className="cursor-pointer text-charcoal text-sm py-1"
+                className="cursor-pointer text-charcoal text-sm py-1 font-medium"
               >
                 {link.label}
               </Link>
@@ -221,7 +231,7 @@ export default function Navbar({
               <>
                 <p className="text-xs text-slate">
                   Signed in as{" "}
-                  <span className="text-charcoal">{displayName}</span>
+                  <span className="text-charcoal font-medium">{displayName}</span>
                 </p>
                 {ACCOUNT_LINKS.map((item) => (
                   <Link
@@ -245,9 +255,9 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="cursor-pointer flex items-center gap-2.5 text-charcoal text-sm py-1 text-left"
+                  className="cursor-pointer flex items-center gap-2.5 text-destructive text-sm py-1 text-left"
                 >
-                  <LogOut size={15} className="text-slate" />
+                  <LogOut size={15} className="text-destructive" />
                   Sign out
                 </button>
               </>
@@ -255,22 +265,21 @@ export default function Navbar({
               <Link
                 href="/auth/login"
                 onClick={() => setMenuOpen(false)}
-                className="cursor-pointer text-charcoal text-sm py-1"
+                className="cursor-pointer text-charcoal text-sm py-1 font-medium"
               >
                 Sign in
               </Link>
             )}
 
-            <Link
-              href="/list-your-villa"
-              onClick={() => setMenuOpen(false)}
-              className="cursor-pointer rounded-xl bg-forest hover:bg-forest-light text-white text-sm font-medium px-5 py-3 text-center transition-colors duration-200"
-            >
-              List your villa
-            </Link>
+            <Button asChild size="lg" className="w-full text-center">
+              <Link href="/list-your-villa" onClick={() => setMenuOpen(false)}>
+                List your villa
+              </Link>
+            </Button>
           </div>
         </div>
       )}
     </header>
   );
 }
+

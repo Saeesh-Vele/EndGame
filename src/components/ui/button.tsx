@@ -65,7 +65,7 @@ function Button({
       {...props}
     >
       {loading && <Loader2 className="animate-spin" size={16} />}
-      {children}
+      <Slot.Slottable>{children}</Slot.Slottable>
     </Comp>
   )
 }

@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { LogOut } from "lucide-react";
 import { signOutAction } from "@/app/admin/actions";
+import { Button } from "@/components/ui/button";
 
 export default function SignOutButton({
   compact = false,
@@ -13,33 +14,35 @@ export default function SignOutButton({
 }) {
   const [pending, startTransition] = useTransition();
 
-  // signOutAction redirects, so there's no success path to handle here — the
-  // pending state simply covers the round trip.
   const handleClick = () => startTransition(() => void signOutAction());
 
   if (compact) {
     return (
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={handleClick}
-        disabled={pending}
+        loading={pending}
         aria-label="Sign out"
-        className={`cursor-pointer text-white/70 hover:text-white transition-colors duration-200 disabled:opacity-50 ${className}`}
+        className={`min-h-[44px] min-w-[44px] text-white/70 hover:text-white hover:bg-white/10 ${className}`}
       >
         <LogOut size={16} />
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={handleClick}
-      disabled={pending}
-      className={`cursor-pointer flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-200 disabled:opacity-50 ${className}`}
+      loading={pending}
+      className={`w-full justify-start gap-3 text-white/70 hover:bg-white/10 hover:text-white ${className}`}
     >
       <LogOut size={18} />
       {pending ? "Signing out…" : "Sign out"}
-    </button>
+    </Button>
   );
 }
+

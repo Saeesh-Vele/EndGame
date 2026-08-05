@@ -7,6 +7,9 @@ import {
   submitBookingRequest,
 } from "@/app/villas/[slug]/actions";
 import { useSession } from "@/components/shared/SessionProvider";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 function formatINR(amount: number) {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -75,9 +78,6 @@ export default function BookingCard({
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
-  // null means "untouched", so the signed-in guest's details can show through
-  // as a default without an effect copying them into state — and without
-  // overwriting anything typed before the session resolved.
   const [guestNameInput, setGuestName] = useState<string | null>(null);
   const [guestEmailInput, setGuestEmail] = useState<string | null>(null);
   const [guestPhone, setGuestPhone] = useState("");
@@ -147,17 +147,17 @@ export default function BookingCard({
   };
 
   return (
-    <div className="lg:sticky lg:top-24 self-start rounded-2xl bg-white shadow-sm p-6">
+    <Card className="lg:sticky lg:top-24 self-start p-6 shadow-sm">
       <div className="flex items-baseline gap-1.5">
-        <span className="text-xl text-charcoal">
+        <span className="text-xl font-semibold text-charcoal">
           {formatINR(pricePerNight)}
         </span>
         <span className="text-sm text-slate">/ night</span>
       </div>
 
-      <div className="mt-4 rounded-xl border border-pebble overflow-hidden">
+      <div className="mt-4 rounded-xl border border-pebble overflow-hidden bg-card">
         <div className="grid grid-cols-2">
-          <label className="flex flex-col gap-1 px-4 py-3 border-r border-pebble">
+          <label className="flex flex-col gap-1 px-4 py-3 border-r border-pebble cursor-pointer">
             <span className="text-xs font-medium text-charcoal">Check in</span>
             <input
               type="date"
@@ -169,7 +169,7 @@ export default function BookingCard({
               className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
             />
           </label>
-          <label className="flex flex-col gap-1 px-4 py-3">
+          <label className="flex flex-col gap-1 px-4 py-3 cursor-pointer">
             <span className="text-xs font-medium text-charcoal">
               Check out
             </span>
@@ -187,34 +187,38 @@ export default function BookingCard({
         <div className="flex items-center justify-between px-4 py-3 border-t border-pebble">
           <span className="text-xs font-medium text-charcoal">Guests</span>
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon-sm"
               onClick={() => setGuests((g) => Math.max(1, g - 1))}
               disabled={guests <= 1}
               aria-label="Decrease guests"
-              className="cursor-pointer flex items-center justify-center h-7 w-7 rounded-full border border-pebble text-charcoal disabled:opacity-40 disabled:cursor-not-allowed hover:border-forest transition-colors duration-200"
+              className="rounded-full min-h-[36px] min-w-[36px]"
             >
               <Minus size={14} />
-            </button>
-            <span className="text-sm text-charcoal w-4 text-center">
+            </Button>
+            <span className="text-sm font-medium text-charcoal w-4 text-center">
               {guests}
             </span>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon-sm"
               onClick={() => setGuests((g) => Math.min(maxGuests, g + 1))}
               disabled={guests >= maxGuests}
               aria-label="Increase guests"
-              className="cursor-pointer flex items-center justify-center h-7 w-7 rounded-full border border-pebble text-charcoal disabled:opacity-40 disabled:cursor-not-allowed hover:border-forest transition-colors duration-200"
+              className="rounded-full min-h-[36px] min-w-[36px]"
             >
               <Plus size={14} />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {canRequest && !requestSent && (
         <div className="mt-4 flex flex-col gap-2.5">
-          <input
+          <Input
             type="text"
             value={guestName}
             onChange={(e) => {
@@ -222,10 +226,9 @@ export default function BookingCard({
               resetRequestState();
             }}
             placeholder="Full name"
-            className="rounded-xl border border-pebble px-3.5 py-2.5 text-sm text-charcoal outline-none placeholder:text-slate/70"
           />
           <div className="grid grid-cols-2 gap-2.5">
-            <input
+            <Input
               type="email"
               value={guestEmail}
               onChange={(e) => {
@@ -233,9 +236,8 @@ export default function BookingCard({
                 resetRequestState();
               }}
               placeholder="Email"
-              className="rounded-xl border border-pebble px-3.5 py-2.5 text-sm text-charcoal outline-none placeholder:text-slate/70"
             />
-            <input
+            <Input
               type="tel"
               value={guestPhone}
               onChange={(e) => {
@@ -243,34 +245,37 @@ export default function BookingCard({
                 resetRequestState();
               }}
               placeholder="Phone"
-              className="rounded-xl border border-pebble px-3.5 py-2.5 text-sm text-charcoal outline-none placeholder:text-slate/70"
             />
           </div>
         </div>
       )}
 
       {errorMessage && (
-        <p className="mt-3 text-sm text-red-600">{errorMessage}</p>
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mt-3 text-sm text-destructive"
+        >
+          {errorMessage}
+        </div>
       )}
 
       {requestSent ? (
-        <div className="mt-4 rounded-xl bg-forest/10 px-4 py-3.5 text-sm text-forest">
+        <div className="mt-4 rounded-xl bg-forest/10 px-4 py-3.5 text-sm text-forest font-medium">
           Request sent — {ownerName ?? "the host"} usually responds within a
           few hours.
         </div>
       ) : (
-        <button
+        <Button
           type="button"
           onClick={handleRequest}
-          disabled={!canRequest || isPending}
-          className="cursor-pointer mt-4 w-full rounded-xl bg-forest hover:bg-forest-light active:bg-forest-dark disabled:bg-pebble disabled:cursor-not-allowed text-white text-sm font-medium px-6 py-3.5 transition-colors duration-200"
+          loading={isPending}
+          disabled={!canRequest}
+          className="mt-4 w-full"
+          size="lg"
         >
-          {isPending
-            ? "Sending request…"
-            : canRequest
-              ? "Request to book"
-              : "Check availability"}
-        </button>
+          {canRequest ? "Request to book" : "Check availability"}
+        </Button>
       )}
 
       {pricing && (
@@ -293,7 +298,7 @@ export default function BookingCard({
           )}
           <div className="flex items-center justify-between pt-2.5 border-t border-pebble font-medium">
             <span>Total</span>
-            <span>{formatINR(pricing.total)}</span>
+            <span className="font-semibold text-base">{formatINR(pricing.total)}</span>
           </div>
         </div>
       )}
@@ -302,9 +307,6 @@ export default function BookingCard({
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
-        // Fire-and-forget: the link opens in a new tab either way, so this
-        // must not be awaited or allowed to block navigation. Guests leave
-        // for WhatsApp here, which makes it the last signal we get.
         onClick={() => {
           void logWhatsappInquiry(villaId);
         }}
@@ -313,6 +315,7 @@ export default function BookingCard({
         <MessageCircle size={16} />
         or message on WhatsApp
       </a>
-    </div>
+    </Card>
   );
 }
+

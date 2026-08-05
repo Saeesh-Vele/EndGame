@@ -1,6 +1,8 @@
 "use client";
 
 import FilterFields from "./FilterFields";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 type FilterFieldsProps = React.ComponentProps<typeof FilterFields>;
 
@@ -9,18 +11,21 @@ export default function FilterSidebar({
   ...fieldProps
 }: FilterFieldsProps & { onClear: () => void }) {
   return (
-    <div className="sticky top-36 rounded-2xl bg-white shadow-sm p-6">
+    <Card className="sticky top-36 p-6 max-h-[calc(100vh-10rem)] overflow-y-auto pr-2">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-base text-charcoal">Filters</h2>
-        <button
+        <h2 className="text-base font-medium text-charcoal">Filters</h2>
+        <Button
           type="button"
+          variant="link"
+          size="sm"
           onClick={onClear}
-          className="cursor-pointer text-xs font-medium text-forest hover:text-forest-light transition-colors duration-200"
+          className="text-xs text-forest hover:text-forest-light"
         >
           Clear all
-        </button>
+        </Button>
       </div>
       <FilterFields {...fieldProps} />
-    </div>
+    </Card>
   );
 }
+

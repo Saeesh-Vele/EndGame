@@ -72,13 +72,13 @@ export default function Footer() {
           <p className="text-sm">
             © {new Date().getFullYear()} StayVilla. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <a
               href={SITE_SOCIAL.instagram}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
-              className="cursor-pointer transition-colors duration-200 hover:text-white"
+              className="cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center text-white/70 transition-colors duration-200 hover:text-white"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <rect
@@ -105,7 +105,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="X"
-              className="cursor-pointer transition-colors duration-200 hover:text-white"
+              className="cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center text-white/70 transition-colors duration-200 hover:text-white"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path
@@ -121,7 +121,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp"
-              className="cursor-pointer transition-colors duration-200 hover:text-white"
+              className="cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center text-white/70 transition-colors duration-200 hover:text-white"
             >
               <MessageCircle size={18} />
             </a>
@@ -131,3 +131,4 @@ export default function Footer() {
     </footer>
   );
 }
+

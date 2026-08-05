@@ -8,6 +8,8 @@ import DestinationAutocomplete, {
 } from "@/components/shared/DestinationAutocomplete";
 import { useTodayISO } from "@/lib/use-today";
 import { Destination } from "@/types";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function SearchPanel({
   destinations,
@@ -35,8 +37,6 @@ export default function SearchPanel({
 
   const handleCheckInChange = (value: string) => {
     setCheckIn(value);
-    // A check-out that's now in the past relative to check-in is nonsense —
-    // drop it rather than carrying it into the URL.
     if (checkOut && value && checkOut <= value) setCheckOut("");
   };
 
@@ -59,7 +59,7 @@ export default function SearchPanel({
 
   return (
     <div className="relative z-10 -mt-20 sm:-mt-12 max-w-5xl mx-auto px-5 sm:px-8">
-      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-3">
+      <Card className="p-4 sm:p-3 shadow-md border-pebble bg-card">
         <form
           onSubmit={handleSubmit}
           className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-0"
@@ -67,7 +67,7 @@ export default function SearchPanel({
           <div className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5">
             <MapPin size={18} className="text-slate shrink-0" />
             <span className="flex flex-col w-full">
-              <label htmlFor="search-where" className="text-xs text-slate">
+              <label htmlFor="search-where" className="text-xs font-medium text-slate">
                 Where
               </label>
               <DestinationAutocomplete
@@ -76,17 +76,17 @@ export default function SearchPanel({
                 value={destination}
                 onChange={setDestination}
                 placeholder="Search destinations"
-                inputClassName="text-sm text-charcoal placeholder:text-slate/70 bg-transparent outline-none w-full"
+                inputClassName="text-sm text-charcoal placeholder:text-slate bg-transparent outline-none w-full"
               />
             </span>
           </div>
 
           <div className="hidden sm:block w-px h-10 bg-pebble" />
 
-          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5">
+          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5 cursor-pointer">
             <Calendar size={18} className="text-slate shrink-0" />
             <span className="flex flex-col w-full">
-              <span className="text-xs text-slate">Check in</span>
+              <span className="text-xs font-medium text-slate">Check in</span>
               <input
                 type="date"
                 value={checkIn}
@@ -99,10 +99,10 @@ export default function SearchPanel({
 
           <div className="hidden sm:block w-px h-10 bg-pebble" />
 
-          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5">
+          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5 cursor-pointer">
             <Calendar size={18} className="text-slate shrink-0" />
             <span className="flex flex-col w-full">
-              <span className="text-xs text-slate">Check out</span>
+              <span className="text-xs font-medium text-slate">Check out</span>
               <input
                 type="date"
                 value={checkOut}
@@ -115,30 +115,32 @@ export default function SearchPanel({
 
           <div className="hidden sm:block w-px h-10 bg-pebble" />
 
-          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5">
+          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5 cursor-pointer">
             <Users size={18} className="text-slate shrink-0" />
             <span className="flex flex-col w-full">
-              <span className="text-xs text-slate">Guests</span>
+              <span className="text-xs font-medium text-slate">Guests</span>
               <input
                 type="number"
                 min={1}
                 value={guests}
                 onChange={(e) => setGuests(e.target.value)}
                 placeholder="Add guests"
-                className="text-sm text-charcoal placeholder:text-slate/70 bg-transparent outline-none w-full"
+                className="text-sm text-charcoal placeholder:text-slate bg-transparent outline-none w-full"
               />
             </span>
           </label>
 
-          <button
+          <Button
             type="submit"
-            className="cursor-pointer shrink-0 flex items-center justify-center gap-2 rounded-xl bg-forest hover:bg-forest-light active:bg-forest-dark text-white text-sm font-medium px-6 py-3.5 sm:py-3 transition-colors duration-200"
+            size="lg"
+            className="shrink-0 gap-2"
           >
             <Search size={17} />
-            <span className="sm:hidden">Search</span>
-          </button>
+            <span>Search</span>
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }
+

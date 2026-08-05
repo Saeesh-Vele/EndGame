@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 import {
   submitVillaListing,
   type VillaSubmissionFormValues,
 } from "@/app/list-your-villa/actions";
 import { FEATURE_AMENITIES, UNIVERSAL_AMENITIES } from "@/lib/amenities";
 import { Destination } from "@/types";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const OTHER = "__other__";
 
@@ -31,9 +35,6 @@ const EMPTY: VillaSubmissionFormValues = {
   message: "",
 };
 
-const inputClass =
-  "w-full rounded-xl border border-pebble bg-white px-3.5 py-2.5 text-sm text-charcoal outline-none transition-colors duration-200 placeholder:text-slate/70 focus:border-forest";
-
 function Section({
   title,
   hint,
@@ -44,11 +45,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-white p-6 sm:p-7 shadow-sm">
+    <Card className="p-6 sm:p-7 border border-pebble bg-card">
       <h2 className="text-base font-medium text-charcoal">{title}</h2>
       {hint && <p className="mt-1 text-sm text-slate">{hint}</p>}
       <div className="mt-5">{children}</div>
-    </section>
+    </Card>
   );
 }
 
@@ -65,9 +66,9 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm text-charcoal">
+      <label htmlFor={htmlFor} className="text-sm font-medium text-charcoal">
         {label}
-        {optional && <span className="ml-1.5 text-xs text-slate">optional</span>}
+        {optional && <span className="ml-1.5 text-xs text-slate font-normal">optional</span>}
       </label>
       {children}
     </div>
@@ -87,10 +88,6 @@ export default function VillaSubmissionForm({
   const [cooldown, setCooldown] = useState(0);
   const [pending, startTransition] = useTransition();
 
-  // Cheap anti-spam: after an attempt the button stays disabled for half a
-  // minute. Client-side only, so it stops accidental double-taps and casual
-  // form-mashing, not a determined script — that's what the server-side
-  // validation in actions.ts is for.
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setTimeout(() => setCooldown((n) => n - 1), 1000);
@@ -132,28 +129,26 @@ export default function VillaSubmissionForm({
         return;
       }
 
-      // No cooldown on a rejection — a typo in the phone number shouldn't
-      // cost the owner half a minute. `pending` already blocks double-taps
-      // while a request is in flight.
       setError(result.error ?? "Couldn't send your submission.");
     });
   };
 
   if (submitted) {
     return (
-      <div className="rounded-2xl bg-white p-8 sm:p-10 text-center shadow-sm">
+      <Card className="p-8 sm:p-10 text-center shadow-sm">
         <CheckCircle2 size={40} className="mx-auto text-forest" />
         <h2 className="mt-4 font-display text-3xl text-charcoal">
           Thanks! We&apos;ll review your property and get back within 48 hours.
         </h2>
         <p className="mt-3 text-sm text-slate leading-relaxed max-w-md mx-auto">
           We&apos;ve got your details for{" "}
-          <span className="text-charcoal">{values.villaName}</span>. Someone
+          <span className="text-charcoal font-medium">{values.villaName}</span>. Someone
           from the team will reach out on {values.ownerPhone} to arrange a
           property visit.
         </p>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => {
             setValues(EMPTY);
             setDestinationChoice("");
@@ -161,13 +156,13 @@ export default function VillaSubmissionForm({
             setSubmitted(false);
           }}
           disabled={cooldown > 0}
-          className="cursor-pointer mt-7 rounded-xl border border-pebble px-6 py-3 text-sm text-charcoal transition-colors duration-200 hover:border-forest disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-7"
         >
           {cooldown > 0
             ? `List another property in ${cooldown}s`
             : "List another property"}
-        </button>
-      </div>
+        </Button>
+      </Card>
     );
   }
 
@@ -176,18 +171,17 @@ export default function VillaSubmissionForm({
       <Section title="Your details" hint="So we know who to talk to.">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Full name" htmlFor="owner-name">
-            <input
+            <Input
               id="owner-name"
               value={values.ownerName}
               onChange={(e) => set("ownerName", e.target.value)}
               placeholder="Rhea Menon"
               autoComplete="name"
               required
-              className={inputClass}
             />
           </Field>
           <Field label="Email" htmlFor="owner-email">
-            <input
+            <Input
               id="owner-email"
               type="email"
               value={values.ownerEmail}
@@ -195,12 +189,11 @@ export default function VillaSubmissionForm({
               placeholder="you@example.com"
               autoComplete="email"
               required
-              className={inputClass}
             />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Phone (WhatsApp)" htmlFor="owner-phone">
-              <input
+              <Input
                 id="owner-phone"
                 type="tel"
                 value={values.ownerPhone}
@@ -208,7 +201,6 @@ export default function VillaSubmissionForm({
                 placeholder="+91 98765 43210"
                 autoComplete="tel"
                 required
-                className={inputClass}
               />
             </Field>
           </div>
@@ -221,23 +213,21 @@ export default function VillaSubmissionForm({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Villa name" htmlFor="villa-name">
-            <input
+            <Input
               id="villa-name"
               value={values.villaName}
               onChange={(e) => set("villaName", e.target.value)}
               placeholder="Casa Alma"
               required
-              className={inputClass}
             />
           </Field>
           <Field label="Location (city or area)" htmlFor="villa-location">
-            <input
+            <Input
               id="villa-location"
               value={values.location}
               onChange={(e) => set("location", e.target.value)}
               placeholder="Assagao, North Goa"
               required
-              className={inputClass}
             />
           </Field>
 
@@ -247,7 +237,7 @@ export default function VillaSubmissionForm({
                 id="villa-destination"
                 value={destinationChoice}
                 onChange={(e) => setDestinationChoice(e.target.value)}
-                className={`${inputClass} cursor-pointer`}
+                className="h-11 min-h-[44px] w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-charcoal outline-none cursor-pointer focus-visible:border-forest focus-visible:ring-2 focus-visible:ring-forest/20"
               >
                 <option value="">Select a destination</option>
                 {destinations.map((destination) => (
@@ -259,48 +249,45 @@ export default function VillaSubmissionForm({
               </select>
             </Field>
             {destinationChoice === OTHER && (
-              <input
+              <Input
                 value={otherDestination}
                 onChange={(e) => setOtherDestination(e.target.value)}
                 placeholder="Which destination?"
                 aria-label="Other destination"
-                className={`${inputClass} mt-2.5`}
+                className="mt-2.5"
               />
             )}
           </div>
 
           <Field label="Bedrooms" htmlFor="villa-bedrooms" optional>
-            <input
+            <Input
               id="villa-bedrooms"
               type="number"
               min={1}
               value={values.bedrooms}
               onChange={(e) => set("bedrooms", e.target.value)}
               placeholder="4"
-              className={inputClass}
             />
           </Field>
           <Field label="Bathrooms" htmlFor="villa-bathrooms" optional>
-            <input
+            <Input
               id="villa-bathrooms"
               type="number"
               min={1}
               value={values.bathrooms}
               onChange={(e) => set("bathrooms", e.target.value)}
               placeholder="4"
-              className={inputClass}
             />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Maximum guests" htmlFor="villa-guests" optional>
-              <input
+              <Input
                 id="villa-guests"
                 type="number"
                 min={1}
                 value={values.maxGuests}
                 onChange={(e) => set("maxGuests", e.target.value)}
                 placeholder="10"
-                className={inputClass}
               />
             </Field>
           </div>
@@ -311,14 +298,14 @@ export default function VillaSubmissionForm({
         title="Describe the place"
         hint="What makes it worth the drive? A few sentences is plenty."
       >
-        <textarea
+        <Textarea
           id="villa-description"
           value={values.description}
           onChange={(e) => set("description", e.target.value)}
           rows={5}
           placeholder="Four-bedroom villa set back from the road, with a 12-metre pool, mango trees, and a cook who comes in the mornings…"
           aria-label="Property description"
-          className={`${inputClass} resize-y`}
+          className="resize-y"
         />
       </Section>
 
@@ -379,25 +366,23 @@ export default function VillaSubmissionForm({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Price per night (₹)" htmlFor="villa-price" optional>
-            <input
+            <Input
               id="villa-price"
               type="number"
               min={0}
               value={values.pricePerNight}
               onChange={(e) => set("pricePerNight", e.target.value)}
               placeholder="24000"
-              className={inputClass}
             />
           </Field>
           <Field label="Weekend price (₹)" htmlFor="villa-weekend" optional>
-            <input
+            <Input
               id="villa-weekend"
               type="number"
               min={0}
               value={values.weekendPrice}
               onChange={(e) => set("weekendPrice", e.target.value)}
               placeholder="30000"
-              className={inputClass}
             />
           </Field>
         </div>
@@ -412,21 +397,21 @@ export default function VillaSubmissionForm({
       </Section>
 
       <Section title="Anything else?" hint="Optional, but it helps.">
-        <textarea
+        <Textarea
           id="villa-message"
           value={values.message}
           onChange={(e) => set("message", e.target.value)}
           rows={4}
           placeholder="The property is managed by a caretaker who lives on site, and we block out December for family…"
           aria-label="Anything else you'd like to share"
-          className={`${inputClass} resize-y`}
+          className="resize-y"
         />
       </Section>
 
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-700"
+          className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3.5 text-sm text-destructive"
         >
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <span>{error}</span>
@@ -434,18 +419,16 @@ export default function VillaSubmissionForm({
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <button
+        <Button
           type="submit"
-          disabled={pending || cooldown > 0}
-          className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-xl bg-forest px-7 py-3.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-forest-light active:bg-forest-dark disabled:cursor-not-allowed disabled:bg-pebble"
+          loading={pending}
+          disabled={cooldown > 0}
+          size="lg"
         >
-          {pending && <Loader2 size={16} className="animate-spin" />}
-          {pending
-            ? "Sending…"
-            : cooldown > 0
-              ? `Try again in ${cooldown}s`
-              : "Submit property"}
-        </button>
+          {cooldown > 0
+            ? `Try again in ${cooldown}s`
+            : "Submit property"}
+        </Button>
         <p className="text-xs text-slate leading-relaxed">
           No commission on inquiries. We&apos;ll only share your number with
           guests once you&apos;re live.
@@ -454,3 +437,4 @@ export default function VillaSubmissionForm({
     </form>
   );
 }
+

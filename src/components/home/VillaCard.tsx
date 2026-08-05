@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Heart, Star, Users, BedDouble, Waves } from "lucide-react";
 import { useSession } from "@/components/shared/SessionProvider";
 import { Villa } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const amenityIcon = (label: string) => {
   if (/guest/i.test(label)) return Users;
@@ -18,7 +20,7 @@ export default function VillaCard({ villa }: { villa: Villa }) {
 
   return (
     <Link href={`/villas/${villa.slug}`} className="group block cursor-pointer">
-      <div className="relative aspect-[4/3] rounded-2xl overflow-hidden">
+      <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-sandstone">
         <Image
           src={villa.images[0]}
           alt={villa.name}
@@ -28,44 +30,43 @@ export default function VillaCard({ villa }: { villa: Villa }) {
         />
 
         {villa.is_superhost && (
-          <span className="absolute top-3 left-3 rounded-xl bg-white/95 px-3 py-1 text-xs font-medium text-charcoal">
+          <Badge className="absolute top-3 left-3 bg-white/90 text-charcoal backdrop-blur-xs border-none font-medium shadow-xs">
             Superhost
-          </span>
+          </Badge>
         )}
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={(e) => {
-            // The whole card is a <Link>; without this the click navigates.
             e.preventDefault();
             e.stopPropagation();
             toggleSaved(villa.id);
           }}
           aria-label={saved ? "Remove from saved" : "Save villa"}
           aria-pressed={saved}
-          // A saved villa keeps its heart visible — otherwise the state is
-          // invisible until you happen to hover the card.
-          className={`cursor-pointer absolute top-3 right-3 flex items-center justify-center h-9 w-9 rounded-full bg-white/0 transition-opacity duration-200 focus-visible:opacity-100 group-hover:opacity-100 ${
-            saved ? "opacity-100" : "opacity-0"
+          className={`absolute top-3 right-3 rounded-full bg-white/80 backdrop-blur-xs shadow-xs min-h-[44px] min-w-[44px] hover:bg-white transition-all duration-200 ${
+            saved ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
           }`}
         >
           <Heart
-            size={20}
+            size={18}
             className={
               saved
                 ? "fill-forest text-forest"
-                : "fill-charcoal/30 text-white"
+                : "fill-charcoal/20 text-charcoal/70"
             }
           />
-        </button>
+        </Button>
       </div>
 
       <div className="mt-4">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base text-charcoal">{villa.name}</h3>
+          <h3 className="text-base font-medium text-charcoal leading-snug">{villa.name}</h3>
           <div className="flex items-center gap-1 shrink-0 pt-0.5">
             <Star size={14} className="fill-driftwood text-driftwood" />
-            <span className="text-sm text-charcoal">{villa.rating}</span>
+            <span className="text-sm font-medium text-charcoal">{villa.rating}</span>
           </div>
         </div>
 
@@ -86,13 +87,14 @@ export default function VillaCard({ villa }: { villa: Villa }) {
           })}
         </div>
 
-        <p className="mt-3 text-sm text-charcoal">
-          <span className="font-medium">
+        <p className="mt-3 text-base text-charcoal">
+          <span className="font-semibold text-charcoal">
             ₹{villa.price_per_night.toLocaleString("en-IN")}
           </span>{" "}
-          <span className="text-slate">/ night</span>
+          <span className="text-xs text-slate">/ night</span>
         </p>
       </div>
     </Link>
   );
 }
+

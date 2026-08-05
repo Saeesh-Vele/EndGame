@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Images } from "lucide-react";
 import GalleryModal from "./GalleryModal";
+import { Button } from "@/components/ui/button";
 
 export default function ImageGallery({
   images,
@@ -81,24 +82,26 @@ export default function ImageGallery({
             </button>
           ))}
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => openModal(0)}
-            className="cursor-pointer absolute bottom-4 right-4 flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-charcoal shadow-sm transition-colors duration-200 hover:bg-linen"
+            className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-charcoal backdrop-blur-xs font-medium shadow-sm gap-2"
           >
             <Images size={16} />
             Show all photos
-          </button>
+          </Button>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => openModal(0)}
-          className="sm:hidden cursor-pointer mt-3 flex items-center justify-center gap-2 w-full rounded-xl border border-pebble bg-white px-4 py-3 text-sm font-medium text-charcoal"
+          className="sm:hidden mt-3 w-full gap-2"
         >
           <Images size={16} />
           Show all photos
-        </button>
+        </Button>
       </div>
 
       <GalleryModal

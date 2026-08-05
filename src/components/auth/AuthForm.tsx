@@ -187,16 +187,10 @@ export default function AuthForm({
         )}
       </div>
 
-      <Button type="submit" disabled={pending} className="mt-1 w-full">
-        {pending && <Loader2 size={16} className="animate-spin" />}
-        {pending
-          ? isSignup
-            ? "Creating account…"
-            : "Signing in…"
-          : isSignup
-            ? "Create account"
-            : "Sign in"}
+      <Button type="submit" loading={pending} className="mt-1 w-full">
+        {isSignup ? "Create account" : "Sign in"}
       </Button>
     </form>
   );
 }
+
