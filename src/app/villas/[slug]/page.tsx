@@ -13,6 +13,7 @@ import BookingCard from "@/components/villa/BookingCard";
 import ReviewsSection from "@/components/villa/ReviewsSection";
 import SimilarVillas from "@/components/villa/SimilarVillas";
 import { createClient } from "@/lib/supabase/server";
+import Breadcrumb from "@/components/shared/Breadcrumb";
 import {
   getVillaBySlug,
   getDestinations,
@@ -64,6 +65,18 @@ export default async function VillaDetailPage({
     <>
       <Navbar transparent={false} />
       <main className="pt-18">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-4">
+          <Breadcrumb
+            items={[
+              { label: "Villas", href: "/villas" },
+              {
+                label: villa.destination,
+                href: `/villas?destination=${destinationMeta?.slug ?? villa.destination.toLowerCase()}`,
+              },
+              { label: villa.name },
+            ]}
+          />
+        </div>
         <ImageGallery images={villa.images} villaName={villa.name} />
 
         <div className="max-w-7xl mx-auto px-5 sm:px-8 py-6">

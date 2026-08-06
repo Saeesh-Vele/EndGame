@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Heart, LogOut, Menu, ClipboardList, User, X } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +37,7 @@ export default function Navbar({
   transparent?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, displayName, loading, signOut } = useSession();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -60,6 +61,16 @@ export default function Navbar({
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && menuOpen) {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [menuOpen]);
+
   const isSolid = !transparent || scrolled;
 
   const handleSignOut = async () => {
@@ -74,19 +85,21 @@ export default function Navbar({
 
   return (
     <header
-      className={`fixed top-0 inset-x-0 z-50 transition-colors duration-200 ${
-        isSolid ? "bg-linen/95 backdrop-blur-sm shadow-sm" : "bg-transparent"
+      className={`fixed top-0 inset-x-0 z-50 pt-[env(safe-area-inset-top)] transition-all duration-300 ${
+        isSolid
+          ? "bg-linen/95 backdrop-blur-md border-b border-pebble/60 shadow-xs"
+          : "bg-transparent"
       }`}
     >
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="flex items-center justify-between h-18 py-4">
-          <Link href="/" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/" className="flex items-center gap-2 cursor-pointer group">
             <svg
               width="26"
               height="26"
               viewBox="0 0 24 24"
               fill="none"
-              className={isSolid ? "text-forest" : "text-white"}
+              className={`transition-colors duration-200 ${isSolid ? "text-forest" : "text-white"}`}
             >
               <path
                 d="M3 11L12 4L21 11"
@@ -111,7 +124,7 @@ export default function Navbar({
               />
             </svg>
             <span
-              className={`font-medium text-lg ${
+              className={`font-medium text-lg tracking-tight ${
                 isSolid ? "text-charcoal" : "text-white"
               }`}
             >
@@ -119,16 +132,34 @@ export default function Navbar({
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-9">
-            {links.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className={`cursor-pointer text-sm font-normal transition-colors duration-200 ${linkClass}`}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center gap-8">
+            {links.map((link) => {
+              const active =
+                pathname === link.href ||
+                (link.href !== "/" && pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className={`cursor-pointer text-sm font-medium transition-colors duration-200 relative py-1 ${
+                    active
+                      ? isSolid
+                        ? "text-forest font-semibold"
+                        : "text-white font-semibold"
+                      : linkClass
+                  }`}
+                >
+                  {link.label}
+                  {active && (
+                    <span
+                      className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${
+                        isSolid ? "bg-forest" : "bg-white"
+                      }`}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="hidden md:flex items-center gap-6">
@@ -212,18 +243,25 @@ export default function Navbar({
       </div>
 
       {menuOpen && (
-        <div className="md:hidden bg-linen border-t border-pebble max-h-[calc(100vh-4.5rem)] overflow-y-auto">
+        <div className="md:hidden bg-linen/98 backdrop-blur-md border-t border-pebble max-h-[calc(100vh-4.5rem)] overflow-y-auto pb-[max(2rem,env(safe-area-inset-bottom))] shadow-xl">
           <div className="px-5 py-5 flex flex-col gap-4">
-            {links.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className="cursor-pointer text-charcoal text-sm py-1 font-medium"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {links.map((link) => {
+              const active =
+                pathname === link.href ||
+                (link.href !== "/" && pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`cursor-pointer text-sm py-1 font-medium ${
+                    active ? "text-forest font-semibold" : "text-charcoal"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
 
             <div className="h-px bg-pebble my-1" />
 
@@ -255,7 +293,7 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="cursor-pointer flex items-center gap-2.5 text-destructive text-sm py-1 text-left"
+                  className="cursor-pointer flex items-center gap-2.5 text-destructive text-sm py-1 text-left font-medium"
                 >
                   <LogOut size={15} className="text-destructive" />
                   Sign out
@@ -271,7 +309,7 @@ export default function Navbar({
               </Link>
             )}
 
-            <Button asChild size="lg" className="w-full text-center">
+            <Button asChild size="lg" className="w-full text-center mt-2">
               <Link href="/list-your-villa" onClick={() => setMenuOpen(false)}>
                 List your villa
               </Link>
@@ -282,4 +320,5 @@ export default function Navbar({
     </header>
   );
 }
+
 

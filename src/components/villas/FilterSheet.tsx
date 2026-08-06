@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { X } from "lucide-react";
 import FilterFields from "./FilterFields";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type FilterFieldsProps = React.ComponentProps<typeof FilterFields>;
 
@@ -29,6 +32,27 @@ export default function FilterSheet({
   guests: number;
   onGuestsChange: (value: number) => void;
 }) {
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && open) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   return (
     <div
       className={`md:hidden fixed inset-0 z-50 transition-opacity duration-300 ${
@@ -36,78 +60,83 @@ export default function FilterSheet({
       }`}
       aria-hidden={!open}
     >
-      <div className="absolute inset-0 bg-charcoal/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-charcoal/50 backdrop-blur-xs" onClick={onClose} />
 
       <div
-        className={`absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-linen transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-linen shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        <div className="sticky top-0 bg-linen border-b border-pebble px-5 py-4 flex items-center justify-between">
-          <h2 className="text-base text-charcoal">Filters</h2>
-          <button
+        <div className="sticky top-0 bg-linen/95 backdrop-blur-md z-10 border-b border-pebble px-5 py-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-charcoal">Filters</h2>
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={onClose}
             aria-label="Close filters"
-            className="cursor-pointer p-1 text-charcoal"
+            className="rounded-full min-h-[36px] min-w-[36px]"
           >
-            <X size={20} />
-          </button>
+            <X size={18} />
+          </Button>
         </div>
 
         <div className="px-5 py-6 flex flex-col gap-8">
           <div>
             <h3 className="text-sm font-medium text-charcoal mb-3">Dates</h3>
             <div className="grid grid-cols-2 gap-3">
-              <input
+              <Input
                 type="date"
                 value={checkIn}
                 onChange={(e) => onCheckInChange(e.target.value)}
                 aria-label="Check in"
-                className="rounded-xl border border-pebble px-3 py-2.5 text-sm text-charcoal outline-none cursor-pointer"
+                className="cursor-pointer"
               />
-              <input
+              <Input
                 type="date"
                 value={checkOut}
                 onChange={(e) => onCheckOutChange(e.target.value)}
                 aria-label="Check out"
-                className="rounded-xl border border-pebble px-3 py-2.5 text-sm text-charcoal outline-none cursor-pointer"
+                className="cursor-pointer"
               />
             </div>
           </div>
 
           <div>
             <h3 className="text-sm font-medium text-charcoal mb-3">Guests</h3>
-            <input
+            <Input
               type="number"
               min={0}
               value={guests || ""}
               placeholder="Any"
               onChange={(e) => onGuestsChange(Number(e.target.value) || 0)}
-              className="w-full rounded-xl border border-pebble px-3 py-2.5 text-sm text-charcoal outline-none placeholder:text-slate/70"
             />
           </div>
 
           <FilterFields {...fieldProps} />
         </div>
 
-        <div className="sticky bottom-0 bg-linen border-t border-pebble px-5 py-4 flex items-center justify-between gap-4">
-          <button
+        <div className="sticky bottom-0 bg-linen/95 backdrop-blur-md border-t border-pebble px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-4">
+          <Button
             type="button"
+            variant="link"
+            size="sm"
             onClick={onClear}
-            className="cursor-pointer text-sm font-medium text-forest hover:text-forest-light transition-colors duration-200"
+            className="text-forest hover:text-forest-light"
           >
             Clear all
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onClose}
-            className="cursor-pointer flex-1 rounded-xl bg-forest hover:bg-forest-light active:bg-forest-dark text-white text-sm font-medium px-6 py-3 transition-colors duration-200"
+            size="lg"
+            className="flex-1"
           >
             Show {resultCount} {resultCount === 1 ? "villa" : "villas"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
   );
 }
+

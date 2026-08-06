@@ -84,15 +84,15 @@ export default function AdminShell({
         </div>
       </aside>
 
-      <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between bg-charcoal text-white px-5 py-4">
+      <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between bg-charcoal text-white px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 shadow-sm">
         <div className="min-w-0">
-          <p className="text-base font-medium text-white">StayVilla</p>
-          <p className="text-xs text-white/50 truncate">{email}</p>
+          <p className="text-base font-semibold text-white">StayVilla</p>
+          <p className="text-xs text-white/60 truncate">{email}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <Link
             href="/"
-            className="cursor-pointer text-xs text-white/70 hover:text-white transition-colors duration-200"
+            className="cursor-pointer text-xs font-medium text-white/70 hover:text-white transition-colors duration-200"
           >
             View site
           </Link>
@@ -100,22 +100,23 @@ export default function AdminShell({
         </div>
       </header>
 
-      <main className="lg:pl-64 pb-20 lg:pb-0 bg-white min-h-screen">
+      <main className="lg:pl-64 pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] lg:pb-12 bg-white min-h-screen">
         <div className="px-5 sm:px-8 py-6 sm:py-8">{children}</div>
       </main>
 
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-charcoal border-t border-white/10 flex items-stretch">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-charcoal border-t border-white/10 flex items-stretch pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-xl">
         {NAV_ITEMS.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`cursor-pointer flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] transition-colors duration-200 ${
-                active ? "text-white" : "text-white/50"
+              aria-current={active ? "page" : undefined}
+              className={`cursor-pointer flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors duration-200 ${
+                active ? "text-white font-semibold" : "text-white/50 hover:text-white/80"
               }`}
             >
-              <item.icon size={20} />
+              <item.icon size={20} className={active ? "text-forest" : "text-white/50"} />
               <span className="max-w-full truncate px-1">{item.label}</span>
             </Link>
           );

@@ -37,7 +37,7 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
 export default function Footer() {
   return (
     <footer className="bg-charcoal text-white/70">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-16 sm:pt-20 pb-[max(4rem,calc(env(safe-area-inset-bottom)+2rem))]">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
           <div className="col-span-2 md:col-span-1">
             <span className="font-medium text-lg text-white">StayVilla</span>

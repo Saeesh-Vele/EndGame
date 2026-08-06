@@ -9,6 +9,8 @@ import { useTodayISO } from "@/lib/use-today";
 import { Destination } from "@/types";
 import PriceRangeSlider from "./PriceRangeSlider";
 
+import { Button } from "@/components/ui/button";
+
 export default function SearchFilterBar({
   destinations,
   destinationCounts,
@@ -61,16 +63,17 @@ export default function SearchFilterBar({
   };
 
   return (
-    <div className="sticky top-18 z-40 bg-linen/95 backdrop-blur-sm border-b border-pebble">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-4">
-        <button
+    <div className="sticky top-18 z-40 bg-linen/95 backdrop-blur-md border-b border-pebble/60 shadow-xs">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-3.5">
+        <Button
           type="button"
+          variant="outline"
           onClick={onOpenMobileFilters}
-          className="md:hidden cursor-pointer flex items-center justify-center gap-2 w-full rounded-xl border border-pebble bg-white px-4 py-3 text-sm text-charcoal transition-colors duration-200 hover:border-forest"
+          className="md:hidden w-full gap-2 bg-card text-charcoal"
         >
           <SlidersHorizontal size={16} />
           Search &amp; filter
-        </button>
+        </Button>
 
         <div className="hidden md:flex md:items-center md:gap-6">
           <div className="flex items-center gap-2 min-w-[180px]">
