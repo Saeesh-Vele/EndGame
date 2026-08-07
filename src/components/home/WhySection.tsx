@@ -1,54 +1,60 @@
 import { ShieldCheck, ReceiptText, PhoneCall } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 const points = [
   {
     icon: ShieldCheck,
-    title: "Personally verified",
+    title: "100% In-Person Verified",
     description:
-      "Every villa is visited in person before it's listed — photos, amenities, and access are exactly as described.",
+      "Every villa is inspected by our team. Photos, floor plans, and amenities are verified on site before listing.",
   },
   {
     icon: ReceiptText,
-    title: "Transparent pricing",
+    title: "Transparent Pricing",
     description:
-      "The price you see is the price you pay. No surprise cleaning fees or service charges added at checkout.",
+      "Honest nightly rates upfront. Zero surprise service fees or hidden cleaning charges added at checkout.",
   },
   {
     icon: PhoneCall,
-    title: "Direct owner contact",
+    title: "Direct Host Contact",
     description:
-      "Message the villa owner directly on WhatsApp for anything you need, before and during your stay.",
+      "Connect directly with villa hosts via WhatsApp. Get instant answers, tailored requests, and local recommendations.",
   },
 ];
 
 export default function WhySection() {
   return (
-    <section className="py-16 sm:py-24">
+    <section className="py-20 sm:py-28">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="max-w-2xl">
-          <h2 className="font-display font-normal text-3xl sm:text-4xl text-charcoal">
-            Not another hotel booking app
+          <span className="text-xs font-semibold uppercase tracking-widest text-slate">
+            The StayVilla Difference
+          </span>
+          <h2 className="font-display font-normal text-3xl sm:text-4xl text-charcoal mt-1">
+            Built for peace of mind
           </h2>
-          <p className="mt-3 text-slate leading-relaxed">
-            Every villa on StayVilla is verified in person, priced honestly,
-            and backed by an owner you can actually reach.
+          <p className="mt-3 text-slate text-sm sm:text-base leading-relaxed">
+            Not an anonymous booking engine. A curated collection of private sanctuaries, 
+            backed by real host connections and honest standards.
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8">
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
           {points.map((point) => (
-            <div key={point.title}>
-              <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-forest/10">
-                <point.icon size={22} className="text-forest" />
+            <Card key={point.title} className="p-8 sm:p-10 hover:shadow-md transition-shadow duration-300">
+              <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-forest/10 text-forest">
+                <point.icon size={22} />
               </div>
-              <h3 className="mt-5 text-lg text-charcoal">{point.title}</h3>
+              <h3 className="mt-6 text-lg font-semibold text-charcoal">{point.title}</h3>
               <p className="mt-2 text-sm text-slate leading-relaxed">
                 {point.description}
               </p>
-            </div>
+            </Card>
           ))}
         </div>
       </div>
     </section>
   );
 }
+
+
