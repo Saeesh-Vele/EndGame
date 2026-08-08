@@ -1,4 +1,5 @@
 import { Users, DoorOpen, Bath, Bed } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 export default function QuickStats({
   guests,
@@ -12,27 +13,26 @@ export default function QuickStats({
   beds: number;
 }) {
   const stats = [
-    { icon: Users, label: `${guests} guests` },
-    { icon: DoorOpen, label: `${bedrooms} bedrooms` },
-    { icon: Bath, label: `${bathrooms} bathrooms` },
-    { icon: Bed, label: `${beds} beds` },
+    { icon: Users, label: `${guests} Guests` },
+    { icon: DoorOpen, label: `${bedrooms} Bedrooms` },
+    { icon: Bath, label: `${bathrooms} Bathrooms` },
+    { icon: Bed, label: `${beds} Beds` },
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 py-6 border-b border-pebble text-sm text-charcoal">
-      {stats.map((stat, i) => (
-        <span key={stat.label} className="flex items-center gap-3">
-          <span className="flex items-center gap-2">
-            <stat.icon size={18} className="text-slate" />
-            {stat.label}
-          </span>
-          {i < stats.length - 1 && (
-            <span className="text-pebble" aria-hidden="true">
-              ·
-            </span>
-          )}
-        </span>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 py-8 border-b border-pebble">
+      {stats.map((stat) => (
+        <Card
+          key={stat.label}
+          className="p-4 border border-pebble/80 bg-card shadow-xs flex items-center gap-3 rounded-xl"
+        >
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-forest/10 text-forest shrink-0">
+            <stat.icon size={18} />
+          </div>
+          <span className="text-sm font-semibold text-charcoal">{stat.label}</span>
+        </Card>
       ))}
     </div>
   );
 }
+

@@ -29,31 +29,36 @@ export default function ImageGallery({
   return (
     <>
       <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-6">
-        <div className="sm:hidden -mx-5 px-5 flex gap-3 overflow-x-auto snap-x snap-mandatory">
+        {/* Mobile Horizontal Carousel */}
+        <div className="sm:hidden -mx-5 px-5 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2">
           {images.map((src, i) => (
             <button
               key={i}
               type="button"
               onClick={() => openModal(i)}
-              className="cursor-pointer relative shrink-0 w-[85vw] aspect-[4/3] snap-start rounded-2xl overflow-hidden"
+              className="group cursor-pointer relative shrink-0 w-[88vw] aspect-[4/3] snap-start rounded-2xl overflow-hidden shadow-xs"
             >
               <Image
                 src={src}
                 alt={`${villaName} photo ${i + 1}`}
                 fill
-                sizes="85vw"
+                sizes="88vw"
                 className="object-cover"
                 priority={i === 0}
               />
+              <span className="absolute bottom-3 right-3 bg-charcoal/80 text-white text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-md border border-white/20">
+                {i + 1} / {images.length}
+              </span>
             </button>
           ))}
         </div>
 
-        <div className="hidden sm:grid relative grid-cols-4 grid-rows-2 gap-2 h-[480px]">
+        {/* Desktop 5-Photo Grid */}
+        <div className="hidden sm:grid relative grid-cols-4 grid-rows-2 gap-3 h-[480px]">
           <button
             type="button"
             onClick={() => openModal(0)}
-            className="cursor-pointer relative col-span-2 row-span-2 rounded-2xl overflow-hidden"
+            className="group cursor-pointer relative col-span-2 row-span-2 rounded-2xl overflow-hidden bg-sandstone"
           >
             <Image
               src={hero}
@@ -61,7 +66,7 @@ export default function ImageGallery({
               fill
               sizes="50vw"
               priority
-              className="object-cover"
+              className="object-cover transition-transform duration-500 ease-out-smooth group-hover:scale-[1.03]"
             />
           </button>
 
@@ -70,26 +75,25 @@ export default function ImageGallery({
               key={i}
               type="button"
               onClick={() => openModal(i + 1)}
-              className="cursor-pointer relative col-span-1 row-span-1 rounded-2xl overflow-hidden"
+              className="group cursor-pointer relative col-span-1 row-span-1 rounded-2xl overflow-hidden bg-sandstone"
             >
               <Image
                 src={src}
                 alt={`${villaName} photo ${i + 2}`}
                 fill
                 sizes="25vw"
-                className="object-cover"
+                className="object-cover transition-transform duration-500 ease-out-smooth group-hover:scale-[1.04]"
               />
             </button>
           ))}
 
           <Button
             type="button"
-            variant="secondary"
             onClick={() => openModal(0)}
-            className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-charcoal backdrop-blur-xs font-medium shadow-sm gap-2"
+            className="absolute bottom-4 right-4 bg-charcoal/85 text-white hover:bg-charcoal backdrop-blur-md border border-white/20 font-medium shadow-md gap-2 rounded-xl text-xs px-4 py-2.5"
           >
             <Images size={16} />
-            Show all photos
+            Show all {images.length} photos
           </Button>
         </div>
 
@@ -97,10 +101,10 @@ export default function ImageGallery({
           type="button"
           variant="outline"
           onClick={() => openModal(0)}
-          className="sm:hidden mt-3 w-full gap-2"
+          className="sm:hidden mt-3 w-full gap-2 border-pebble"
         >
           <Images size={16} />
-          Show all photos
+          Show all {images.length} photos
         </Button>
       </div>
 
@@ -115,3 +119,4 @@ export default function ImageGallery({
     </>
   );
 }
+

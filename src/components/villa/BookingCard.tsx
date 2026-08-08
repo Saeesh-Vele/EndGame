@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { MessageCircle, Minus, Plus } from "lucide-react";
+import { MessageCircle, Minus, Plus, ShieldCheck, Sparkles } from "lucide-react";
 import {
   logWhatsappInquiry,
   submitBookingRequest,
@@ -146,176 +146,218 @@ export default function BookingCard({
     });
   };
 
+  const scrollToCard = () => {
+    const cardEl = document.getElementById("booking-card");
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <Card className="lg:sticky lg:top-24 self-start p-6 shadow-sm">
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-xl font-semibold text-charcoal">
-          {formatINR(pricePerNight)}
-        </span>
-        <span className="text-sm text-slate">/ night</span>
-      </div>
-
-      <div className="mt-4 rounded-xl border border-pebble overflow-hidden bg-card">
-        <div className="grid grid-cols-2">
-          <label className="flex flex-col gap-1 px-4 py-3 border-r border-pebble cursor-pointer">
-            <span className="text-xs font-medium text-charcoal">Check in</span>
-            <input
-              type="date"
-              value={checkIn}
-              onChange={(e) => {
-                setCheckIn(e.target.value);
-                resetRequestState();
-              }}
-              className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
-            />
-          </label>
-          <label className="flex flex-col gap-1 px-4 py-3 cursor-pointer">
-            <span className="text-xs font-medium text-charcoal">
-              Check out
+    <>
+      <Card id="booking-card" className="lg:sticky lg:top-24 self-start p-6 sm:p-8 shadow-md border-pebble bg-card rounded-2xl">
+        <div className="flex items-baseline justify-between gap-2 border-b border-pebble pb-4">
+          <div>
+            <span className="text-2xl sm:text-3xl font-bold text-charcoal">
+              {formatINR(pricePerNight)}
             </span>
-            <input
-              type="date"
-              value={checkOut}
-              onChange={(e) => {
-                setCheckOut(e.target.value);
-                resetRequestState();
-              }}
-              className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
-            />
-          </label>
+            <span className="text-xs text-slate ml-1">/ night</span>
+          </div>
+          <span className="flex items-center gap-1 text-xs font-semibold text-forest bg-forest/10 px-2.5 py-1 rounded-full">
+            <Sparkles size={13} />
+            Direct Rate
+          </span>
         </div>
-        <div className="flex items-center justify-between px-4 py-3 border-t border-pebble">
-          <span className="text-xs font-medium text-charcoal">Guests</span>
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              onClick={() => setGuests((g) => Math.max(1, g - 1))}
-              disabled={guests <= 1}
-              aria-label="Decrease guests"
-              className="rounded-full min-h-[36px] min-w-[36px]"
-            >
-              <Minus size={14} />
-            </Button>
-            <span className="text-sm font-medium text-charcoal w-4 text-center">
-              {guests}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              onClick={() => setGuests((g) => Math.min(maxGuests, g + 1))}
-              disabled={guests >= maxGuests}
-              aria-label="Increase guests"
-              className="rounded-full min-h-[36px] min-w-[36px]"
-            >
-              <Plus size={14} />
-            </Button>
+
+        <div className="mt-5 rounded-xl border border-pebble overflow-hidden bg-card shadow-xs">
+          <div className="grid grid-cols-2">
+            <label className="flex flex-col gap-1 px-4 py-3 border-r border-pebble cursor-pointer hover:bg-sandstone/30 transition-colors">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate">Check in</span>
+              <input
+                type="date"
+                value={checkIn}
+                onChange={(e) => {
+                  setCheckIn(e.target.value);
+                  resetRequestState();
+                }}
+                className="cursor-pointer bg-transparent text-sm font-medium text-charcoal outline-none"
+              />
+            </label>
+            <label className="flex flex-col gap-1 px-4 py-3 cursor-pointer hover:bg-sandstone/30 transition-colors">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate">Check out</span>
+              <input
+                type="date"
+                value={checkOut}
+                onChange={(e) => {
+                  setCheckOut(e.target.value);
+                  resetRequestState();
+                }}
+                className="cursor-pointer bg-transparent text-sm font-medium text-charcoal outline-none"
+              />
+            </label>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-pebble bg-sandstone/20">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate">Guests</span>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                onClick={() => setGuests((g) => Math.max(1, g - 1))}
+                disabled={guests <= 1}
+                aria-label="Decrease guests"
+                className="rounded-full min-h-[36px] min-w-[36px] border-pebble"
+              >
+                <Minus size={14} />
+              </Button>
+              <span className="text-sm font-semibold text-charcoal w-4 text-center">
+                {guests}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                onClick={() => setGuests((g) => Math.min(maxGuests, g + 1))}
+                disabled={guests >= maxGuests}
+                aria-label="Increase guests"
+                className="rounded-full min-h-[36px] min-w-[36px] border-pebble"
+              >
+                <Plus size={14} />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {canRequest && !requestSent && (
-        <div className="mt-4 flex flex-col gap-2.5">
-          <Input
-            type="text"
-            value={guestName}
-            onChange={(e) => {
-              setGuestName(e.target.value);
-              resetRequestState();
-            }}
-            placeholder="Full name"
-          />
-          <div className="grid grid-cols-2 gap-2.5">
+        {canRequest && !requestSent && (
+          <div className="mt-4 flex flex-col gap-2.5">
             <Input
-              type="email"
-              value={guestEmail}
+              type="text"
+              value={guestName}
               onChange={(e) => {
-                setGuestEmail(e.target.value);
+                setGuestName(e.target.value);
                 resetRequestState();
               }}
-              placeholder="Email"
+              placeholder="Full name"
             />
-            <Input
-              type="tel"
-              value={guestPhone}
-              onChange={(e) => {
-                setGuestPhone(e.target.value);
-                resetRequestState();
-              }}
-              placeholder="Phone"
-            />
+            <div className="grid grid-cols-2 gap-2.5">
+              <Input
+                type="email"
+                value={guestEmail}
+                onChange={(e) => {
+                  setGuestEmail(e.target.value);
+                  resetRequestState();
+                }}
+                placeholder="Email"
+              />
+              <Input
+                type="tel"
+                value={guestPhone}
+                onChange={(e) => {
+                  setGuestPhone(e.target.value);
+                  resetRequestState();
+                }}
+                placeholder="Phone"
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {errorMessage && (
-        <div
-          role="alert"
-          aria-live="polite"
-          className="mt-3 text-sm text-destructive"
-        >
-          {errorMessage}
-        </div>
-      )}
-
-      {requestSent ? (
-        <div className="mt-4 rounded-xl bg-forest/10 px-4 py-3.5 text-sm text-forest font-medium">
-          Request sent — {ownerName ?? "the host"} usually responds within a
-          few hours.
-        </div>
-      ) : (
-        <Button
-          type="button"
-          onClick={handleRequest}
-          loading={isPending}
-          disabled={!canRequest}
-          className="mt-4 w-full"
-          size="lg"
-        >
-          {canRequest ? "Request to book" : "Check availability"}
-        </Button>
-      )}
-
-      {pricing && (
-        <div className="mt-5 flex flex-col gap-2.5 text-sm text-charcoal">
-          <div className="flex items-center justify-between">
-            <span className="text-slate">
-              {formatINR(pricePerNight)} × {pricing.nights}{" "}
-              {pricing.nights === 1 ? "night" : "nights"}
-            </span>
-            <span>{formatINR(pricing.baseSubtotal)}</span>
+        {errorMessage && (
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mt-3 text-sm font-medium text-destructive"
+          >
+            {errorMessage}
           </div>
-          {pricing.weekendSurcharge > 0 && (
+        )}
+
+        {requestSent ? (
+          <div className="mt-4 rounded-xl bg-forest/10 border border-forest/20 px-4 py-3.5 text-sm text-forest font-semibold">
+            ✓ Request sent — {ownerName ?? "the host"} usually responds within a few hours.
+          </div>
+        ) : (
+          <Button
+            type="button"
+            onClick={handleRequest}
+            loading={isPending}
+            disabled={!canRequest}
+            className="mt-5 w-full font-medium"
+            size="lg"
+          >
+            {canRequest ? "Request to book" : "Select dates to check availability"}
+          </Button>
+        )}
+
+        {pricing && (
+          <div className="mt-5 flex flex-col gap-2.5 text-sm text-charcoal bg-sandstone/40 p-4 rounded-xl border border-pebble">
             <div className="flex items-center justify-between">
               <span className="text-slate">
-                Weekend surcharge · {pricing.weekendNights}{" "}
-                {pricing.weekendNights === 1 ? "night" : "nights"}
+                {formatINR(pricePerNight)} × {pricing.nights}{" "}
+                {pricing.nights === 1 ? "night" : "nights"}
               </span>
-              <span>+{formatINR(pricing.weekendSurcharge)}</span>
+              <span>{formatINR(pricing.baseSubtotal)}</span>
             </div>
-          )}
-          <div className="flex items-center justify-between pt-2.5 border-t border-pebble font-medium">
-            <span>Total</span>
-            <span className="font-semibold text-base">{formatINR(pricing.total)}</span>
+            {pricing.weekendSurcharge > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate">
+                  Weekend surcharge · {pricing.weekendNights}{" "}
+                  {pricing.weekendNights === 1 ? "night" : "nights"}
+                </span>
+                <span>+{formatINR(pricing.weekendSurcharge)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2.5 border-t border-pebble font-semibold">
+              <span>Total</span>
+              <span className="font-bold text-lg text-charcoal">{formatINR(pricing.total)}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <a
-        href={whatsappHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => {
-          void logWhatsappInquiry(villaId);
-        }}
-        className="cursor-pointer mt-4 flex items-center justify-center gap-2 text-sm text-forest hover:text-forest-light transition-colors duration-200"
-      >
-        <MessageCircle size={16} />
-        or message on WhatsApp
-      </a>
-    </Card>
+        <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-slate">
+          <ShieldCheck size={14} className="text-forest shrink-0" />
+          <span>Zero service fees · Direct booking with host</span>
+        </div>
+
+        <a
+          href={whatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => {
+            void logWhatsappInquiry(villaId);
+          }}
+          className="cursor-pointer mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-forest hover:text-forest-light transition-colors py-2 rounded-xl bg-forest/5 hover:bg-forest/10 border border-forest/15"
+        >
+          <MessageCircle size={15} />
+          Or message host directly on WhatsApp
+        </a>
+      </Card>
+
+      {/* Mobile Fixed Bottom Booking Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-pebble p-4 shadow-xl flex items-center justify-between gap-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div>
+          <span className="text-xl font-bold text-charcoal">
+            {formatINR(pricePerNight)}
+          </span>
+          <span className="text-xs text-slate ml-1">/ night</span>
+          {pricing && (
+            <p className="text-xs font-medium text-forest">
+              Total: {formatINR(pricing.total)} ({pricing.nights}n)
+            </p>
+          )}
+        </div>
+
+        <Button
+          type="button"
+          size="lg"
+          onClick={scrollToCard}
+          className="px-6 font-medium shadow-sm"
+        >
+          {canRequest ? "Request to book" : "Check dates"}
+        </Button>
+      </div>
+    </>
   );
 }
+
 

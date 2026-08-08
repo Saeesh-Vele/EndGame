@@ -18,6 +18,7 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ICONS: Record<string, LucideIcon> = {
   "Private pool": Waves,
@@ -44,31 +45,42 @@ export default function AmenitiesGrid({ amenities }: { amenities: string[] }) {
   const visible = expanded ? amenities : amenities.slice(0, 8);
 
   return (
-    <div className="py-6 border-b border-pebble">
-      <h2 className="text-lg text-charcoal mb-4">What this place offers</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5">
+    <div className="py-8 border-b border-pebble">
+      <span className="text-xs font-semibold uppercase tracking-widest text-slate">
+        Amenities
+      </span>
+      <h2 className="font-display font-normal text-2xl text-charcoal mt-1 mb-6">
+        What this villa offers
+      </h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
         {visible.map((amenity) => {
           const Icon = ICONS[amenity] ?? Sparkles;
           return (
-            <span
+            <div
               key={amenity}
-              className="flex items-center gap-3 text-sm text-charcoal"
+              className="flex items-center gap-3.5 text-sm font-medium text-charcoal p-2.5 rounded-xl bg-sandstone/30 border border-pebble/40"
             >
-              <Icon size={18} className="text-slate shrink-0" />
-              {amenity}
-            </span>
+              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-card border border-pebble/60 text-forest shrink-0">
+                <Icon size={16} />
+              </div>
+              <span>{amenity}</span>
+            </div>
           );
         })}
       </div>
+
       {amenities.length > 8 && (
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => setExpanded((v) => !v)}
-          className="cursor-pointer mt-5 rounded-xl border border-charcoal px-5 py-2.5 text-sm font-medium text-charcoal transition-colors duration-200 hover:bg-sandstone"
+          className="mt-6 border-pebble text-charcoal hover:bg-sandstone font-medium"
         >
           {expanded ? "Show less" : `Show all ${amenities.length} amenities`}
-        </button>
+        </Button>
       )}
     </div>
   );
 }
+

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MapPin, Star, Share2, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function VillaInfoHeader({
   name,
@@ -29,42 +30,47 @@ export default function VillaInfoHeader({
   };
 
   return (
-    <div className="flex items-start justify-between gap-6">
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-6">
       <div>
-        <h1 className="font-display font-normal text-3xl sm:text-4xl text-charcoal">
+        <h1 className="font-display font-normal text-3xl sm:text-5xl text-charcoal leading-tight">
           {name}
         </h1>
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate">
-          <span className="flex items-center gap-1.5">
-            <MapPin size={15} />
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate">
+          <span className="flex items-center gap-1.5 font-medium text-charcoal">
+            <MapPin size={16} className="text-forest shrink-0" />
             {location}
           </span>
-          <span className="flex items-center gap-1.5 text-charcoal">
-            <Star size={15} className="fill-driftwood text-driftwood" />
+          <span className="flex items-center gap-1.5 font-semibold text-charcoal bg-sandstone/80 px-2.5 py-1 rounded-md border border-pebble">
+            <Star size={15} className="fill-amber-500 text-amber-500 shrink-0" />
             {rating.toFixed(2)}
-            <span className="text-slate">({reviewCount} reviews)</span>
+            <span className="text-slate font-normal">({reviewCount} reviews)</span>
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 shrink-0">
-        <button
+      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={handleShare}
-          className="cursor-pointer flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal transition-colors duration-200 hover:bg-sandstone"
+          className="gap-2 border-pebble text-charcoal hover:bg-sandstone"
         >
           <Share2 size={16} />
           <span className="hidden sm:inline">Share</span>
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => setSaved((v) => !v)}
-          className="cursor-pointer flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal transition-colors duration-200 hover:bg-sandstone"
+          className="gap-2 border-pebble text-charcoal hover:bg-sandstone"
         >
           <Heart size={16} className={saved ? "fill-forest text-forest" : ""} />
-          <span className="hidden sm:inline">Save</span>
-        </button>
+          <span className="hidden sm:inline">{saved ? "Saved" : "Save"}</span>
+        </Button>
       </div>
     </div>
   );
 }
+
