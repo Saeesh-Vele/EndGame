@@ -1,12 +1,19 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const options = [
   { value: "recommended", label: "Recommended" },
   { value: "price-asc", label: "Price: Low to High" },
   { value: "price-desc", label: "Price: High to Low" },
-  { value: "rating", label: "Rating" },
+  { value: "rating", label: "Highest Rated" },
 ];
 
 export default function SortDropdown({
@@ -17,23 +24,26 @@ export default function SortDropdown({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="relative inline-block shrink-0">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label="Sort villas"
-        className="cursor-pointer appearance-none rounded-xl border border-pebble bg-white pl-4 pr-9 py-2.5 text-sm text-charcoal transition-colors duration-200 hover:border-forest"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={16}
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate"
-      />
+    <div className="flex items-center gap-2">
+      <span className="hidden sm:inline-block text-xs font-medium text-slate uppercase tracking-wider">
+        Sort:
+      </span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="w-[180px] sm:w-[200px] h-10 min-h-[40px] bg-card border-pebble rounded-xl text-xs font-semibold text-charcoal shadow-xs">
+          <div className="flex items-center gap-2 truncate">
+            <ArrowUpDown size={14} className="text-slate shrink-0" />
+            <SelectValue placeholder="Sort villas" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="end" className="rounded-xl border-pebble bg-card shadow-md">
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs font-medium cursor-pointer">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
+

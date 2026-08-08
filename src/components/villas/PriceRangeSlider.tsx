@@ -25,19 +25,23 @@ export default function PriceRangeSlider({
     onChange([lo, next]);
   };
 
-  const loPct = ((lo - min) / (max - min)) * 100;
-  const hiPct = ((hi - min) / (max - min)) * 100;
+  const loPct = Math.max(0, Math.min(100, ((lo - min) / (max - min)) * 100));
+  const hiPct = Math.max(0, Math.min(100, ((hi - min) / (max - min)) * 100));
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between text-xs text-slate mb-2">
-        <span>₹{lo.toLocaleString("en-IN")}</span>
-        <span>₹{hi.toLocaleString("en-IN")}</span>
+      <div className="flex items-center justify-between text-xs font-semibold text-charcoal mb-3">
+        <span className="bg-sandstone/80 px-2.5 py-1 rounded-md border border-pebble">
+          ₹{lo.toLocaleString("en-IN")}
+        </span>
+        <span className="bg-sandstone/80 px-2.5 py-1 rounded-md border border-pebble">
+          ₹{hi.toLocaleString("en-IN")}
+        </span>
       </div>
       <div className="relative h-4 flex items-center">
-        <div className="absolute inset-x-0 h-1 rounded-full bg-pebble" />
+        <div className="absolute inset-x-0 h-1.5 rounded-full bg-pebble" />
         <div
-          className="absolute h-1 rounded-full bg-forest"
+          className="absolute h-1.5 rounded-full bg-forest"
           style={{ left: `${loPct}%`, right: `${100 - hiPct}%` }}
         />
         <input
@@ -64,3 +68,4 @@ export default function PriceRangeSlider({
     </div>
   );
 }
+

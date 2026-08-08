@@ -26,11 +26,11 @@ export default function VillaCard({ villa }: { villa: Villa }) {
           alt={villa.name}
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]"
+          className="object-cover transition-transform duration-500 ease-out-smooth group-hover:scale-[1.04]"
         />
 
         {villa.is_superhost && (
-          <Badge className="absolute top-3 left-3 bg-white/90 text-charcoal backdrop-blur-xs border-none font-medium shadow-xs">
+          <Badge className="absolute top-3 left-3 bg-charcoal/80 text-white backdrop-blur-md border border-white/20 font-medium shadow-xs text-xs px-2.5 py-1">
             Superhost
           </Badge>
         )}
@@ -46,7 +46,7 @@ export default function VillaCard({ villa }: { villa: Villa }) {
           }}
           aria-label={saved ? "Remove from saved" : "Save villa"}
           aria-pressed={saved}
-          className={`absolute top-3 right-3 rounded-full bg-white/80 backdrop-blur-xs shadow-xs min-h-[44px] min-w-[44px] hover:bg-white transition-all duration-200 ${
+          className={`absolute top-3 right-3 rounded-full bg-white/90 backdrop-blur-md shadow-xs min-h-[44px] min-w-[44px] hover:bg-white transition-all duration-200 ${
             saved ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
           }`}
         >
@@ -63,10 +63,12 @@ export default function VillaCard({ villa }: { villa: Villa }) {
 
       <div className="mt-4">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base font-medium text-charcoal leading-snug">{villa.name}</h3>
+          <h3 className="text-base font-semibold text-charcoal leading-snug group-hover:text-forest transition-colors duration-150">
+            {villa.name}
+          </h3>
           <div className="flex items-center gap-1 shrink-0 pt-0.5">
-            <Star size={14} className="fill-driftwood text-driftwood" />
-            <span className="text-sm font-medium text-charcoal">{villa.rating}</span>
+            <Star size={14} className="fill-amber-500 text-amber-500" />
+            <span className="text-sm font-semibold text-charcoal">{villa.rating}</span>
           </div>
         </div>
 
@@ -78,7 +80,7 @@ export default function VillaCard({ villa }: { villa: Villa }) {
             return (
               <span
                 key={amenity}
-                className="flex items-center gap-1.5 text-xs text-slate"
+                className="flex items-center gap-1.5 text-xs font-medium text-slate"
               >
                 <Icon size={14} />
                 {amenity}
@@ -88,7 +90,7 @@ export default function VillaCard({ villa }: { villa: Villa }) {
         </div>
 
         <p className="mt-3 text-base text-charcoal">
-          <span className="font-semibold text-charcoal">
+          <span className="font-bold text-charcoal">
             ₹{villa.price_per_night.toLocaleString("en-IN")}
           </span>{" "}
           <span className="text-xs text-slate">/ night</span>
@@ -97,4 +99,5 @@ export default function VillaCard({ villa }: { villa: Villa }) {
     </Link>
   );
 }
+
 

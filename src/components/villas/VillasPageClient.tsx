@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { SearchX, X } from "lucide-react";
 import VillaCard from "@/components/home/VillaCard";
 import SearchFilterBar from "./SearchFilterBar";
 import FilterSidebar from "./FilterSidebar";
 import FilterSheet from "./FilterSheet";
 import SortDropdown from "./SortDropdown";
+import Breadcrumb from "@/components/shared/Breadcrumb";
 import { Villa, Destination } from "@/types";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const AMENITY_OPTIONS = [
   "Private pool",
@@ -59,8 +64,6 @@ export default function VillasPageClient({
     [destinations]
   );
 
-  // The sidebar checkboxes key off destination names (that's what a villa row
-  // carries), the URL and the search bar key off slugs. These bridge the two.
   const slugByName = useMemo(() => {
     const map: Record<string, string> = {};
     for (const d of destinations) map[d.name] = d.slug;
@@ -90,10 +93,6 @@ export default function VillasPageClient({
     [selectedDestinations, slugByName]
   );
 
-  // Mirror the search-bar fields into the URL so the page is linkable and a
-  // refresh keeps the filters. replaceState rather than pushState: typing in
-  // the guests box shouldn't bury the previous page under history entries.
-  // This never re-renders the server component, so it can't fight the props.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
@@ -136,6 +135,14 @@ export default function VillasPageClient({
     setSelectedAmenities([]);
     setGuests(0);
   };
+
+  const hasActiveFilters =
+    selectedDestinations.length > 0 ||
+    priceRange[0] > priceBounds[0] ||
+    priceRange[1] < priceBounds[1] ||
+    bedroomsMin > 0 ||
+    selectedAmenities.length > 0 ||
+    guests > 0;
 
   const filtered = useMemo(() => {
     return villas.filter((villa) => {
@@ -184,9 +191,6 @@ export default function VillasPageClient({
     }
   }, [filtered, sort]);
 
-  // The bar's dropdown is single-select; with two or more destinations ticked
-  // in the sidebar there's no single slug that represents the selection, so it
-  // shows as empty rather than lying about which one is active.
   const singleDestinationSlug =
     selectedDestinations.length === 1
       ? (slugByName[selectedDestinations[0]] ?? "")
@@ -219,11 +223,19 @@ export default function VillasPageClient({
 
   return (
     <div className="pt-18">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-8 sm:pt-10">
-        <h1 className="font-display font-normal text-3xl sm:text-4xl text-charcoal">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-6 sm:pt-8 pb-4">
+        <Breadcrumb
+          items={[
+            { label: "Villas", href: "/villas" },
+            ...(selectedDestinations.length === 1
+              ? [{ label: selectedDestinations[0] }]
+              : []),
+          ]}
+        />
+        <h1 className="font-display font-normal text-3xl sm:text-4xl text-charcoal mt-3">
           {headingText}
         </h1>
-        <p className="mt-2 text-slate">
+        <p className="mt-2 text-slate text-sm sm:text-base">
           Handpicked private villas, verified in person.
         </p>
       </div>
@@ -252,9 +264,10 @@ export default function VillasPageClient({
           </aside>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <p className="text-sm text-slate">
-                {sorted.length} {sorted.length === 1 ? "villa" : "villas"} found
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <p className="text-sm font-medium text-slate">
+                <span className="text-charcoal font-semibold">{sorted.length}</span>{" "}
+                {sorted.length === 1 ? "villa" : "villas"} available
               </p>
               <SortDropdown
                 value={sort}
@@ -262,16 +275,103 @@ export default function VillasPageClient({
               />
             </div>
 
+            {/* Active Filter Chips Bar */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap items-center gap-2 mb-6 p-3 rounded-xl bg-sandstone/40 border border-pebble">
+                <span className="text-xs font-semibold text-slate uppercase tracking-wider mr-1">
+                  Active Filters:
+                </span>
+                {selectedDestinations.map((dest) => (
+                  <Badge
+                    key={dest}
+                    variant="secondary"
+                    onClick={() => toggleDestination(dest)}
+                    className="cursor-pointer gap-1.5 bg-card hover:bg-pebble border border-pebble text-charcoal text-xs px-2.5 py-1"
+                  >
+                    {dest}
+                    <X size={12} className="text-slate hover:text-charcoal" />
+                  </Badge>
+                ))}
+                {(priceRange[0] > priceBounds[0] || priceRange[1] < priceBounds[1]) && (
+                  <Badge
+                    variant="secondary"
+                    onClick={() => setPriceRange(priceBounds)}
+                    className="cursor-pointer gap-1.5 bg-card hover:bg-pebble border border-pebble text-charcoal text-xs px-2.5 py-1"
+                  >
+                    ₹{priceRange[0].toLocaleString("en-IN")} – ₹{priceRange[1].toLocaleString("en-IN")}
+                    <X size={12} className="text-slate hover:text-charcoal" />
+                  </Badge>
+                )}
+                {bedroomsMin > 0 && (
+                  <Badge
+                    variant="secondary"
+                    onClick={() => setBedroomsMin(0)}
+                    className="cursor-pointer gap-1.5 bg-card hover:bg-pebble border border-pebble text-charcoal text-xs px-2.5 py-1"
+                  >
+                    {bedroomsMin}+ Bedrooms
+                    <X size={12} className="text-slate hover:text-charcoal" />
+                  </Badge>
+                )}
+                {guests > 0 && (
+                  <Badge
+                    variant="secondary"
+                    onClick={() => setGuests(0)}
+                    className="cursor-pointer gap-1.5 bg-card hover:bg-pebble border border-pebble text-charcoal text-xs px-2.5 py-1"
+                  >
+                    {guests}+ Guests
+                    <X size={12} className="text-slate hover:text-charcoal" />
+                  </Badge>
+                )}
+                {selectedAmenities.map((amenity) => (
+                  <Badge
+                    key={amenity}
+                    variant="secondary"
+                    onClick={() => toggleAmenity(amenity)}
+                    className="cursor-pointer gap-1.5 bg-card hover:bg-pebble border border-pebble text-charcoal text-xs px-2.5 py-1"
+                  >
+                    {amenity}
+                    <X size={12} className="text-slate hover:text-charcoal" />
+                  </Badge>
+                ))}
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={clearAll}
+                  className="text-xs text-forest hover:text-forest-light ml-auto"
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
+
             {sorted.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
                 {sorted.map((villa) => (
                   <VillaCard key={villa.id} villa={villa} />
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl bg-white shadow-sm py-16 text-center text-slate">
-                No villas match your filters. Try adjusting them.
-              </div>
+              <Card className="py-16 sm:py-20 px-6 text-center border-pebble bg-card shadow-xs rounded-2xl">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest/10 text-forest mb-4">
+                  <SearchX size={28} />
+                </div>
+                <h3 className="font-display font-normal text-2xl text-charcoal">
+                  No villas match your filters
+                </h3>
+                <p className="mt-2 text-sm text-slate max-w-md mx-auto leading-relaxed">
+                  Try adjusting your price range, clearing specific amenity filters, 
+                  or exploring other destinations across India.
+                </p>
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={clearAll}
+                  className="mt-6"
+                >
+                  Clear all filters
+                </Button>
+              </Card>
             )}
           </div>
         </div>
@@ -293,3 +393,4 @@ export default function VillasPageClient({
     </div>
   );
 }
+

@@ -1,6 +1,7 @@
 "use client";
 
 import PriceRangeSlider from "./PriceRangeSlider";
+import { Button } from "@/components/ui/button";
 
 const BEDROOM_OPTIONS = [0, 1, 2, 3, 4, 5];
 
@@ -34,14 +35,14 @@ export default function FilterFields({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h3 className="text-sm font-medium text-charcoal mb-3">Destination</h3>
-        <div className="flex flex-col gap-2.5">
+        <h3 className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-3">Destination</h3>
+        <div className="flex flex-col gap-1">
           {destinationNames.map((name) => (
             <label
               key={name}
-              className="flex items-center justify-between cursor-pointer"
+              className="flex items-center justify-between cursor-pointer min-h-[36px] px-1 py-1 rounded-lg hover:bg-sandstone/50 transition-colors duration-150"
             >
-              <span className="flex items-center gap-2.5 text-sm text-charcoal">
+              <span className="flex items-center gap-2.5 text-sm font-medium text-charcoal">
                 <input
                   type="checkbox"
                   checked={selectedDestinations.includes(name)}
@@ -50,7 +51,7 @@ export default function FilterFields({
                 />
                 {name}
               </span>
-              <span className="text-xs text-slate">
+              <span className="text-xs font-medium text-slate bg-sandstone px-2 py-0.5 rounded-md">
                 {destinationCounts[name] ?? 0}
               </span>
             </label>
@@ -59,7 +60,7 @@ export default function FilterFields({
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-charcoal mb-3">Price range</h3>
+        <h3 className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-3">Price Range</h3>
         <PriceRangeSlider
           min={priceBounds[0]}
           max={priceBounds[1]}
@@ -70,32 +71,30 @@ export default function FilterFields({
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-charcoal mb-3">Bedrooms</h3>
+        <h3 className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-3">Bedrooms</h3>
         <div className="flex flex-wrap gap-2">
           {BEDROOM_OPTIONS.map((n) => (
-            <button
+            <Button
               key={n}
               type="button"
+              variant={bedroomsMin === n ? "default" : "outline"}
+              size="sm"
               onClick={() => onBedroomsChange(n)}
-              className={`cursor-pointer rounded-xl border px-3.5 py-1.5 text-sm transition-colors duration-200 ${
-                bedroomsMin === n
-                  ? "border-forest bg-forest text-white"
-                  : "border-pebble text-charcoal hover:border-forest"
-              }`}
+              className="min-w-[44px]"
             >
               {n === 0 ? "Any" : `${n}+`}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-charcoal mb-3">Amenities</h3>
-        <div className="flex flex-col gap-2.5">
+        <h3 className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-3">Amenities</h3>
+        <div className="flex flex-col gap-1">
           {amenityOptions.map((amenity) => (
             <label
               key={amenity}
-              className="flex items-center gap-2.5 cursor-pointer text-sm text-charcoal"
+              className="flex items-center gap-2.5 cursor-pointer text-sm font-medium text-charcoal min-h-[36px] px-1 py-1 rounded-lg hover:bg-sandstone/50 transition-colors duration-150"
             >
               <input
                 type="checkbox"
@@ -111,3 +110,4 @@ export default function FilterFields({
     </div>
   );
 }
+
