@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 
 const MIN_PASSWORD = 8;
@@ -103,10 +104,10 @@ export default function DashboardProfile({
   };
 
   return (
-    <div className="rounded-2xl bg-white p-6 sm:p-7 shadow-sm max-w-lg">
+    <Card className="p-6 sm:p-8 border border-pebble/80 bg-card shadow-xs rounded-2xl max-w-lg">
       <form onSubmit={handleSaveName} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="profile-name">Name</Label>
+          <Label htmlFor="profile-name" className="text-xs font-semibold uppercase tracking-wider text-slate">Full Name</Label>
           <Input
             id="profile-name"
             value={name}
@@ -118,29 +119,28 @@ export default function DashboardProfile({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="profile-email">Email</Label>
-          <Input id="profile-email" value={email} readOnly disabled />
+          <Label htmlFor="profile-email" className="text-xs font-semibold uppercase tracking-wider text-slate">Email Address</Label>
+          <Input id="profile-email" value={email} readOnly disabled className="bg-sandstone/50" />
           <p className="text-xs text-slate">
-            Email changes aren&apos;t self-serve yet — write to us and
-            we&apos;ll move it.
+            Email updates are handled via support — reach out if you need to transfer accounts.
           </p>
         </div>
 
         <Button
           type="submit"
           disabled={savingName || name.trim() === initialName.trim()}
-          className="self-start"
+          className="self-start font-medium mt-1"
         >
-          {savingName && <Loader2 size={16} className="animate-spin" />}
+          {savingName && <Loader2 size={16} className="animate-spin mr-1" />}
           {savingName ? "Saving…" : "Save changes"}
         </Button>
       </form>
 
-      <div className="mt-7 pt-6 border-t border-pebble">
+      <div className="mt-8 pt-6 border-t border-pebble">
         {changingPassword ? (
           <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-password">New password</Label>
+              <Label htmlFor="new-password" className="text-xs font-semibold uppercase tracking-wider text-slate">New Password</Label>
               <Input
                 id="new-password"
                 type="password"
@@ -153,7 +153,7 @@ export default function DashboardProfile({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm-password">Confirm new password</Label>
+              <Label htmlFor="confirm-password" className="text-xs font-semibold uppercase tracking-wider text-slate">Confirm Password</Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -165,10 +165,10 @@ export default function DashboardProfile({
                 disabled={savingPassword}
               />
             </div>
-            <div className="flex items-center gap-3">
-              <Button type="submit" disabled={savingPassword}>
+            <div className="flex items-center gap-3 mt-1">
+              <Button type="submit" disabled={savingPassword} className="font-medium">
                 {savingPassword && (
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 size={16} className="animate-spin mr-1" />
                 )}
                 {savingPassword ? "Updating…" : "Update password"}
               </Button>
@@ -191,11 +191,12 @@ export default function DashboardProfile({
             type="button"
             variant="outline"
             onClick={() => setChangingPassword(true)}
+            className="border-pebble text-charcoal hover:bg-sandstone font-medium"
           >
             Change password
           </Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
