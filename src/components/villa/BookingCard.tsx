@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { MessageCircle, Minus, Plus, ShieldCheck, Sparkles } from "lucide-react";
+import { MessageCircle, Minus, Plus, ShieldCheck, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   logWhatsappInquiry,
   submitBookingRequest,
@@ -75,6 +75,8 @@ export default function BookingCard({
   ownerName?: string;
   ownerWhatsapp: string;
 }) {
+  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
@@ -83,6 +85,11 @@ export default function BookingCard({
   const [guestPhone, setGuestPhone] = useState("");
   const [requestSent, setRequestSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: boolean;
+    email?: boolean;
+    phone?: boolean;
+  }>({});
   const [isPending, startTransition] = useTransition();
 
   const { user } = useSession();
@@ -113,19 +120,41 @@ export default function BookingCard({
   }, [villaName, checkIn, checkOut, guests, ownerWhatsapp]);
 
   const canRequest = Boolean(pricing);
+
   const resetRequestState = () => {
     setRequestSent(false);
     setErrorMessage(null);
+    setFieldErrors({});
+  };
+
+  const handleCheckInChange = (val: string) => {
+    setCheckIn(val);
+    if (checkOut && val && checkOut <= val) {
+      const nextDay = new Date(new Date(val).getTime() + 86_400_000)
+        .toISOString()
+        .split("T")[0];
+      setCheckOut(nextDay);
+    }
+    resetRequestState();
   };
 
   const handleRequest = () => {
     if (!pricing) return;
-    if (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim()) {
-      setErrorMessage("Please fill in your name, email, and phone number.");
+
+    const errors: { name?: boolean; email?: boolean; phone?: boolean } = {};
+    if (!guestName.trim()) errors.name = true;
+    if (!guestEmail.trim() || !guestEmail.includes("@")) errors.email = true;
+    if (!guestPhone.trim() || guestPhone.trim().length < 8) errors.phone = true;
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setErrorMessage("Please complete all required guest information correctly.");
       return;
     }
 
     setErrorMessage(null);
+    setFieldErrors({});
+
     startTransition(async () => {
       const result = await submitBookingRequest({
         villaId,
@@ -155,7 +184,10 @@ export default function BookingCard({
 
   return (
     <>
-      <Card id="booking-card" className="lg:sticky lg:top-24 self-start p-6 sm:p-8 shadow-md border-pebble bg-card rounded-2xl">
+      <Card
+        id="booking-card"
+        className="lg:sticky lg:top-24 self-start p-6 sm:p-8 shadow-md border-pebble bg-card rounded-2xl"
+      >
         <div className="flex items-baseline justify-between gap-2 border-b border-pebble pb-4">
           <div>
             <span className="text-2xl sm:text-3xl font-bold text-charcoal">
@@ -169,35 +201,43 @@ export default function BookingCard({
           </span>
         </div>
 
+        {/* Date & Guest Input Block */}
         <div className="mt-5 rounded-xl border border-pebble overflow-hidden bg-card shadow-xs">
           <div className="grid grid-cols-2">
             <label className="flex flex-col gap-1 px-4 py-3 border-r border-pebble cursor-pointer hover:bg-sandstone/30 transition-colors">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate">Check in</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate">
+                Check in
+              </span>
               <input
                 type="date"
+                min={todayIso}
                 value={checkIn}
-                onChange={(e) => {
-                  setCheckIn(e.target.value);
-                  resetRequestState();
-                }}
+                onChange={(e) => handleCheckInChange(e.target.value)}
+                aria-label="Check-in date"
                 className="cursor-pointer bg-transparent text-sm font-medium text-charcoal outline-none"
               />
             </label>
             <label className="flex flex-col gap-1 px-4 py-3 cursor-pointer hover:bg-sandstone/30 transition-colors">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate">Check out</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate">
+                Check out
+              </span>
               <input
                 type="date"
+                min={checkIn || todayIso}
                 value={checkOut}
                 onChange={(e) => {
                   setCheckOut(e.target.value);
                   resetRequestState();
                 }}
+                aria-label="Check-out date"
                 className="cursor-pointer bg-transparent text-sm font-medium text-charcoal outline-none"
               />
             </label>
           </div>
           <div className="flex items-center justify-between px-4 py-3 border-t border-pebble bg-sandstone/20">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate">Guests</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate">
+              Guests
+            </span>
             <div className="flex items-center gap-3">
               <Button
                 type="button"
@@ -228,17 +268,23 @@ export default function BookingCard({
           </div>
         </div>
 
+        {/* Guest Information Inputs (Visible when dates selected) */}
         {canRequest && !requestSent && (
           <div className="mt-4 flex flex-col gap-2.5">
-            <Input
-              type="text"
-              value={guestName}
-              onChange={(e) => {
-                setGuestName(e.target.value);
-                resetRequestState();
-              }}
-              placeholder="Full name"
-            />
+            <div className="relative">
+              <Input
+                type="text"
+                value={guestName}
+                onChange={(e) => {
+                  setGuestName(e.target.value);
+                  resetRequestState();
+                }}
+                placeholder="Full name *"
+                aria-invalid={fieldErrors.name}
+                aria-label="Full name"
+                className={fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2.5">
               <Input
                 type="email"
@@ -247,7 +293,10 @@ export default function BookingCard({
                   setGuestEmail(e.target.value);
                   resetRequestState();
                 }}
-                placeholder="Email"
+                placeholder="Email *"
+                aria-invalid={fieldErrors.email}
+                aria-label="Email address"
+                className={fieldErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
               />
               <Input
                 type="tel"
@@ -256,59 +305,81 @@ export default function BookingCard({
                   setGuestPhone(e.target.value);
                   resetRequestState();
                 }}
-                placeholder="Phone"
+                placeholder="Phone *"
+                aria-invalid={fieldErrors.phone}
+                aria-label="Phone number"
+                className={fieldErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
               />
             </div>
           </div>
         )}
 
+        {/* Actionable Error Feedback */}
         {errorMessage && (
           <div
             role="alert"
             aria-live="polite"
-            className="mt-3 text-sm font-medium text-destructive"
+            className="mt-3.5 flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-semibold text-destructive"
           >
-            {errorMessage}
+            <AlertCircle size={15} className="shrink-0" />
+            <span>{errorMessage}</span>
           </div>
         )}
 
+        {/* Confirmation State Card */}
         {requestSent ? (
-          <div className="mt-4 rounded-xl bg-forest/10 border border-forest/20 px-4 py-3.5 text-sm text-forest font-semibold">
-            ✓ Request sent — {ownerName ?? "the host"} usually responds within a few hours.
-          </div>
+          <Card className="mt-5 p-5 bg-forest/10 border border-forest/20 rounded-xl flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-forest font-semibold text-sm">
+              <CheckCircle2 size={18} className="shrink-0 text-forest" />
+              <span>Booking Request Received</span>
+            </div>
+            <p className="text-xs text-charcoal leading-relaxed font-normal">
+              Your request for <strong className="font-semibold">{villaName}</strong> ({formatDisplayDate(checkIn)} – {formatDisplayDate(checkOut)}) has been sent. {ownerName ?? "The host"} usually confirms availability within 4 hours.
+            </p>
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center justify-center gap-2 text-xs font-semibold text-white bg-forest hover:bg-forest-light transition-colors py-2.5 px-4 rounded-xl shadow-xs"
+            >
+              <MessageCircle size={15} />
+              Follow up instantly on WhatsApp
+            </a>
+          </Card>
         ) : (
           <Button
             type="button"
             onClick={handleRequest}
             loading={isPending}
             disabled={!canRequest}
-            className="mt-5 w-full font-medium"
+            className="mt-5 w-full font-semibold shadow-xs"
             size="lg"
           >
             {canRequest ? "Request to book" : "Select dates to check availability"}
           </Button>
         )}
 
+        {/* Transparent Price Breakdown */}
         {pricing && (
           <div className="mt-5 flex flex-col gap-2.5 text-sm text-charcoal bg-sandstone/40 p-4 rounded-xl border border-pebble">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-slate">
                 {formatINR(pricePerNight)} × {pricing.nights}{" "}
                 {pricing.nights === 1 ? "night" : "nights"}
               </span>
-              <span>{formatINR(pricing.baseSubtotal)}</span>
+              <span className="font-medium">{formatINR(pricing.baseSubtotal)}</span>
             </div>
             {pricing.weekendSurcharge > 0 && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-slate">
                   Weekend surcharge · {pricing.weekendNights}{" "}
                   {pricing.weekendNights === 1 ? "night" : "nights"}
                 </span>
-                <span>+{formatINR(pricing.weekendSurcharge)}</span>
+                <span className="font-medium">+{formatINR(pricing.weekendSurcharge)}</span>
               </div>
             )}
             <div className="flex items-center justify-between pt-2.5 border-t border-pebble font-semibold">
-              <span>Total</span>
+              <span className="text-charcoal">Total (INR)</span>
               <span className="font-bold text-lg text-charcoal">{formatINR(pricing.total)}</span>
             </div>
           </div>
@@ -316,7 +387,7 @@ export default function BookingCard({
 
         <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-slate">
           <ShieldCheck size={14} className="text-forest shrink-0" />
-          <span>Zero service fees · Direct booking with host</span>
+          <span>Zero hidden fees · Direct booking with host</span>
         </div>
 
         <a
@@ -326,7 +397,7 @@ export default function BookingCard({
           onClick={() => {
             void logWhatsappInquiry(villaId);
           }}
-          className="cursor-pointer mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-forest hover:text-forest-light transition-colors py-2 rounded-xl bg-forest/5 hover:bg-forest/10 border border-forest/15"
+          className="cursor-pointer mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-forest hover:text-forest-light transition-colors py-2.5 rounded-xl bg-forest/5 hover:bg-forest/10 border border-forest/15"
         >
           <MessageCircle size={15} />
           Or message host directly on WhatsApp
@@ -341,7 +412,7 @@ export default function BookingCard({
           </span>
           <span className="text-xs text-slate ml-1">/ night</span>
           {pricing && (
-            <p className="text-xs font-medium text-forest">
+            <p className="text-xs font-semibold text-forest mt-0.5">
               Total: {formatINR(pricing.total)} ({pricing.nights}n)
             </p>
           )}
@@ -351,7 +422,7 @@ export default function BookingCard({
           type="button"
           size="lg"
           onClick={scrollToCard}
-          className="px-6 font-medium shadow-sm"
+          className="px-6 font-semibold shadow-sm min-h-[44px]"
         >
           {canRequest ? "Request to book" : "Check dates"}
         </Button>
@@ -359,5 +430,6 @@ export default function BookingCard({
     </>
   );
 }
+
 
 
