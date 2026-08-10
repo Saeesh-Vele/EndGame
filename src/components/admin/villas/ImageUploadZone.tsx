@@ -168,7 +168,7 @@ export default function ImageUploadZone({
                 <X size={13} />
               </button>
               {i === 0 && (
-                <span className="absolute bottom-1.5 left-1.5 rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-medium text-charcoal">
+                <span className="absolute bottom-1.5 left-1.5 rounded-md bg-white/95 px-1.5 py-0.5 text-xs font-semibold text-charcoal shadow-xs">
                   Cover
                 </span>
               )}

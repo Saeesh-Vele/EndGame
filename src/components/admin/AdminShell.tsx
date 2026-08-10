@@ -42,7 +42,7 @@ export default function AdminShell({
         <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between">
           <div>
             <p className="text-lg font-bold text-white tracking-wide">StayVilla</p>
-            <p className="text-[11px] font-semibold text-white/50 uppercase tracking-widest mt-0.5">
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mt-0.5">
               Admin Portal
             </p>
           </div>
@@ -79,7 +79,7 @@ export default function AdminShell({
           </Link>
 
           <div className="px-3 pt-3 border-t border-white/10">
-            <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">
+            <p className="text-xs uppercase tracking-widest text-white/40 font-semibold">
               Admin Session
             </p>
             <p className="mt-0.5 text-xs font-medium text-white/90 truncate" title={email}>
@@ -122,7 +122,7 @@ export default function AdminShell({
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`cursor-pointer flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors duration-150 ${
+              className={`cursor-pointer flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium transition-colors duration-150 ${
                 active ? "text-white font-semibold bg-white/5" : "text-white/50 hover:text-white/80"
               }`}
             >
