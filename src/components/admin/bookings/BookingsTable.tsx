@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import BookingStatusBadge from "@/components/shared/BookingStatusBadge";
 import { BookingRequestWithVilla } from "@/types";
 
@@ -63,10 +64,10 @@ export default function BookingsTable({
       ),
       cell: ({ row }) => (
         <div className="min-w-0">
-          <p className="text-sm text-charcoal truncate">
+          <p className="text-sm font-semibold text-charcoal truncate">
             {row.original.guest_name}
           </p>
-          <p className="text-xs text-slate truncate">
+          <p className="text-xs font-medium text-slate truncate">
             {row.original.guest_email}
           </p>
         </div>
@@ -76,7 +77,7 @@ export default function BookingsTable({
       accessorKey: "villa_name",
       header: "Villa",
       cell: ({ row }) => (
-        <span className="text-sm text-charcoal">{row.original.villa_name}</span>
+        <span className="text-sm font-medium text-charcoal">{row.original.villa_name}</span>
       ),
     },
     {
@@ -88,7 +89,7 @@ export default function BookingsTable({
         />
       ),
       cell: ({ row }) => (
-        <span className="text-sm text-charcoal whitespace-nowrap">
+        <span className="text-xs font-medium text-charcoal whitespace-nowrap">
           {formatDate(row.original.check_in)} – {formatDate(row.original.check_out)}
         </span>
       ),
@@ -102,7 +103,7 @@ export default function BookingsTable({
         />
       ),
       cell: ({ row }) => (
-        <span className="text-sm text-charcoal">
+        <span className="text-sm font-bold text-charcoal">
           ₹{row.original.total_price.toLocaleString("en-IN")}
         </span>
       ),
@@ -116,7 +117,7 @@ export default function BookingsTable({
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-slate hover:text-charcoal">
           <Link
             href={`/admin/bookings/${row.original.id}`}
             aria-label={`View booking from ${row.original.guest_name}`}
@@ -139,13 +140,13 @@ export default function BookingsTable({
   });
 
   return (
-    <div className="rounded-2xl border border-pebble bg-white overflow-hidden">
+    <Card className="rounded-2xl border border-pebble/80 bg-card overflow-hidden shadow-xs">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+            <TableRow key={headerGroup.id} className="hover:bg-transparent bg-sandstone/30">
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="px-4 h-11">
+                <TableHead key={header.id} className="px-4 h-11 text-xs font-semibold uppercase tracking-wider text-slate">
                   {header.isPlaceholder
                     ? null
                     : flexRender(
@@ -160,9 +161,9 @@ export default function BookingsTable({
         <TableBody>
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} className="hover:bg-sandstone/20 transition-colors">
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="px-4 py-3">
+                  <TableCell key={cell.id} className="px-4 py-3.5">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -172,7 +173,7 @@ export default function BookingsTable({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="h-24 text-center text-sm text-slate"
+                className="h-28 text-center text-sm text-slate"
               >
                 No bookings match your filters.
               </TableCell>
@@ -180,6 +181,7 @@ export default function BookingsTable({
           )}
         </TableBody>
       </Table>
-    </div>
+    </Card>
   );
 }
+

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -116,7 +117,7 @@ export default function VillasTable({
       ),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <div className="relative h-11 w-14 shrink-0 rounded-lg overflow-hidden bg-sandstone">
+          <div className="relative h-11 w-14 shrink-0 rounded-lg overflow-hidden bg-sandstone border border-pebble/40">
             <Image
               src={row.original.images[0] ?? FALLBACK_IMAGE}
               alt={row.original.name}
@@ -126,10 +127,10 @@ export default function VillasTable({
             />
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-charcoal truncate">
+            <p className="text-sm font-semibold text-charcoal truncate">
               {row.original.name}
             </p>
-            <p className="text-xs text-slate truncate">
+            <p className="text-xs font-medium text-slate truncate">
               {row.original.location}
             </p>
           </div>
@@ -140,7 +141,7 @@ export default function VillasTable({
       accessorKey: "destination",
       header: "Destination",
       cell: ({ row }) => (
-        <span className="text-sm text-charcoal">
+        <span className="text-sm font-medium text-charcoal">
           {row.original.destination}
         </span>
       ),
@@ -154,7 +155,7 @@ export default function VillasTable({
         />
       ),
       cell: ({ row }) => (
-        <span className="text-sm text-charcoal">
+        <span className="text-sm font-bold text-charcoal">
           ₹{row.original.price_per_night.toLocaleString("en-IN")}
         </span>
       ),
@@ -168,16 +169,14 @@ export default function VillasTable({
         />
       ),
       cell: ({ row }) => (
-        <span className="flex items-center gap-1 text-sm text-charcoal">
-          <Star size={13} className="fill-driftwood text-driftwood" />
+        <span className="flex items-center gap-1 text-sm font-semibold text-charcoal">
+          <Star size={13} className="fill-amber-500 text-amber-500" />
           {row.original.rating.toFixed(2)}
         </span>
       ),
     },
     {
       id: "whatsapp_clicks",
-      // Sorted through an accessorFn so the column sorts on the number rather
-      // than on a Villa field that doesn't carry it.
       accessorFn: (villa) => whatsappClicks[villa.id] ?? 0,
       header: ({ column }) => (
         <SortButton
@@ -189,14 +188,14 @@ export default function VillasTable({
         const clicks = whatsappClicks[row.original.id] ?? 0;
         return (
           <span
-            className={`flex items-center gap-1.5 text-sm ${
-              clicks > 0 ? "text-charcoal" : "text-slate"
+            className={`flex items-center gap-1.5 text-xs font-semibold ${
+              clicks > 0 ? "text-forest" : "text-slate"
             }`}
             title={`${clicks} WhatsApp ${
               clicks === 1 ? "inquiry" : "inquiries"
             } all time`}
           >
-            <MessageCircle size={13} className="text-slate" />
+            <MessageCircle size={13} className={clicks > 0 ? "text-forest" : "text-slate"} />
             {clicks}
           </span>
         );
@@ -218,11 +217,11 @@ export default function VillasTable({
             } ${row.original.name}`}
           />
           <span
-            className={`text-xs ${
-              row.original.is_active ? "text-charcoal" : "text-slate"
+            className={`text-xs font-semibold ${
+              row.original.is_active ? "text-forest" : "text-slate"
             }`}
           >
-            {row.original.is_active ? "Active" : "Inactive"}
+            {row.original.is_active ? "Live" : "Hidden"}
           </span>
         </div>
       ),
@@ -232,7 +231,7 @@ export default function VillasTable({
       header: "",
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-slate hover:text-charcoal">
             <Link
               href={`/admin/villas/${row.original.id}/edit`}
               aria-label={`Edit ${row.original.name}`}
@@ -247,7 +246,7 @@ export default function VillasTable({
                 variant="ghost"
                 size="icon"
                 aria-label={`Delete ${row.original.name}`}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 size={15} />
               </Button>
@@ -288,13 +287,13 @@ export default function VillasTable({
   });
 
   return (
-    <div className="rounded-2xl border border-pebble bg-white overflow-hidden">
+    <Card className="rounded-2xl border border-pebble/80 bg-card overflow-hidden shadow-xs">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+            <TableRow key={headerGroup.id} className="hover:bg-transparent bg-sandstone/30">
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="px-4 h-11">
+                <TableHead key={header.id} className="px-4 h-11 text-xs font-semibold uppercase tracking-wider text-slate">
                   {header.isPlaceholder
                     ? null
                     : flexRender(
@@ -309,9 +308,9 @@ export default function VillasTable({
         <TableBody>
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} className="hover:bg-sandstone/20 transition-colors">
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="px-4 py-3">
+                  <TableCell key={cell.id} className="px-4 py-3.5">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -321,7 +320,7 @@ export default function VillasTable({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="h-24 text-center text-sm text-slate"
+                className="h-28 text-center text-sm text-slate"
               >
                 No villas match your filters.
               </TableCell>
@@ -329,6 +328,7 @@ export default function VillasTable({
           )}
         </TableBody>
       </Table>
-    </div>
+    </Card>
   );
 }
+
