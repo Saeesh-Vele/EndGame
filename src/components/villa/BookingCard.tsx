@@ -204,7 +204,7 @@ export default function BookingCard({
         {/* Date & Guest Input Block */}
         <div className="mt-5 rounded-xl border border-pebble overflow-hidden bg-card shadow-xs">
           <div className="grid grid-cols-2">
-            <label className="flex flex-col gap-1 px-4 py-3 border-r border-pebble cursor-pointer hover:bg-sandstone/30 transition-colors">
+            <label className="flex min-w-0 flex-col gap-1 px-4 py-3 border-r border-pebble cursor-pointer hover:bg-sandstone/30 transition-colors">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate">
                 Check in
               </span>
@@ -214,10 +214,10 @@ export default function BookingCard({
                 value={checkIn}
                 onChange={(e) => handleCheckInChange(e.target.value)}
                 aria-label="Check-in date"
-                className="cursor-pointer bg-transparent text-sm font-medium text-charcoal outline-none"
+                className="w-full min-w-0 cursor-pointer bg-transparent text-sm font-medium text-charcoal outline-none"
               />
             </label>
-            <label className="flex flex-col gap-1 px-4 py-3 cursor-pointer hover:bg-sandstone/30 transition-colors">
+            <label className="flex min-w-0 flex-col gap-1 px-4 py-3 cursor-pointer hover:bg-sandstone/30 transition-colors">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate">
                 Check out
               </span>
@@ -230,7 +230,7 @@ export default function BookingCard({
                   resetRequestState();
                 }}
                 aria-label="Check-out date"
-                className="cursor-pointer bg-transparent text-sm font-medium text-charcoal outline-none"
+                className="w-full min-w-0 cursor-pointer bg-transparent text-sm font-medium text-charcoal outline-none"
               />
             </label>
           </div>

@@ -112,7 +112,7 @@ export default async function VillaDetailPage({
               />
             </div>
 
-            <div className="lg:w-[40%]">
+            <div className="lg:w-[40%] min-w-0">
               <BookingCard
                 villaId={villa.id}
                 villaName={villa.name}

@@ -161,7 +161,7 @@ export default function DestinationAutocomplete({
   };
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full min-w-0">
       <input
         id={fieldId}
         type="text"

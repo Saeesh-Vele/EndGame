@@ -69,14 +69,14 @@ export default function SearchFilterBar({
           type="button"
           variant="outline"
           onClick={onOpenMobileFilters}
-          className="md:hidden w-full gap-2 bg-card text-charcoal"
+          className="lg:hidden w-full gap-2 bg-card text-charcoal"
         >
           <SlidersHorizontal size={16} />
           Search &amp; filter
         </Button>
 
-        <div className="hidden md:flex md:items-center md:gap-6">
-          <div className="flex items-center gap-2 min-w-[180px]">
+        <div className="hidden lg:flex lg:items-center lg:gap-5">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <MapPin size={16} className="text-slate shrink-0" />
             <DestinationAutocomplete
               inputId="villas-destination"
@@ -90,7 +90,7 @@ export default function SearchFilterBar({
 
           <div className="w-px h-8 bg-pebble" />
 
-          <label className="flex items-center gap-2">
+          <label className="flex min-w-0 items-center gap-2">
             <Calendar size={16} className="text-slate shrink-0" />
             <input
               type="date"
@@ -98,13 +98,13 @@ export default function SearchFilterBar({
               min={today}
               onChange={(e) => handleCheckInChange(e.target.value)}
               aria-label="Check in"
-              className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
+              className="w-full min-w-0 cursor-pointer bg-transparent text-sm text-charcoal outline-none"
             />
           </label>
 
           <div className="w-px h-8 bg-pebble" />
 
-          <label className="flex items-center gap-2">
+          <label className="flex min-w-0 items-center gap-2">
             <Calendar size={16} className="text-slate shrink-0" />
             <input
               type="date"
@@ -112,13 +112,13 @@ export default function SearchFilterBar({
               min={checkIn || today}
               onChange={(e) => onCheckOutChange(e.target.value)}
               aria-label="Check out"
-              className="cursor-pointer bg-transparent text-sm text-charcoal outline-none"
+              className="w-full min-w-0 cursor-pointer bg-transparent text-sm text-charcoal outline-none"
             />
           </label>
 
           <div className="w-px h-8 bg-pebble" />
 
-          <label className="flex items-center gap-2">
+          <label className="flex min-w-0 items-center gap-2">
             <Users size={16} className="text-slate shrink-0" />
             <input
               type="number"
@@ -127,13 +127,13 @@ export default function SearchFilterBar({
               placeholder="Guests"
               onChange={(e) => onGuestsChange(Number(e.target.value) || 0)}
               aria-label="Guests"
-              className="w-20 bg-transparent text-sm text-charcoal outline-none placeholder:text-slate/70"
+              className="w-16 min-w-0 bg-transparent text-sm text-charcoal outline-none placeholder:text-slate/70"
             />
           </label>
 
           <div className="w-px h-8 bg-pebble" />
 
-          <div className="flex-1 max-w-[220px]">
+          <div className="min-w-0 flex-1 max-w-[220px]">
             <PriceRangeSlider
               min={priceBounds[0]}
               max={priceBounds[1]}

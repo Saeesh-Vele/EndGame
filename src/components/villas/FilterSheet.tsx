@@ -55,7 +55,7 @@ export default function FilterSheet({
 
   return (
     <div
-      className={`md:hidden fixed inset-0 z-50 transition-opacity duration-300 ${
+      className={`lg:hidden fixed inset-0 z-50 transition-opacity duration-300 ${
         open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
       }`}
       aria-hidden={!open}

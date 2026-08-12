@@ -266,4 +266,24 @@ body {
   html {
     @apply font-sans;
   }
+
+  /* Backstop against page-level horizontal scroll. `clip` rather than
+     `hidden` on purpose: `hidden` would turn these into scroll containers and
+     break the `position: sticky` headers, filter bar, sidebar, and booking
+     card. `clip` cuts stray overflow without creating a scroll port, and it
+     leaves the intentional `overflow-x-auto` carousels and table wrappers
+     scrolling normally. This is a safety net, not the fix — anything that
+     trips it is a layout bug worth tracking down. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* Media and embeds never widen their container. */
+  img,
+  video,
+  canvas,
+  iframe {
+    max-width: 100%;
+  }
 }

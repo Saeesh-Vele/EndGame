@@ -62,11 +62,11 @@ export default function SearchPanel({
       <Card className="p-4 sm:p-3 shadow-md border-pebble bg-card">
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-0"
+          className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-0"
         >
-          <div className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5">
+          <div className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2 lg:px-5">
             <MapPin size={18} className="text-slate shrink-0" />
-            <span className="flex flex-col w-full">
+            <span className="flex flex-col w-full min-w-0">
               <label htmlFor="search-where" className="text-xs font-medium text-slate">
                 Where
               </label>
@@ -81,43 +81,43 @@ export default function SearchPanel({
             </span>
           </div>
 
-          <div className="hidden sm:block w-px h-10 bg-pebble" />
+          <div className="hidden lg:block w-px h-10 bg-pebble" />
 
-          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5 cursor-pointer">
+          <label className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2 lg:px-5 cursor-pointer">
             <Calendar size={18} className="text-slate shrink-0" />
-            <span className="flex flex-col w-full">
+            <span className="flex flex-col w-full min-w-0">
               <span className="text-xs font-medium text-slate">Check in</span>
               <input
                 type="date"
                 value={checkIn}
                 min={today}
                 onChange={(e) => handleCheckInChange(e.target.value)}
-                className="text-sm text-charcoal bg-transparent outline-none w-full cursor-pointer"
+                className="text-sm text-charcoal bg-transparent outline-none w-full min-w-0 cursor-pointer"
               />
             </span>
           </label>
 
-          <div className="hidden sm:block w-px h-10 bg-pebble" />
+          <div className="hidden lg:block w-px h-10 bg-pebble" />
 
-          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5 cursor-pointer">
+          <label className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2 lg:px-5 cursor-pointer">
             <Calendar size={18} className="text-slate shrink-0" />
-            <span className="flex flex-col w-full">
+            <span className="flex flex-col w-full min-w-0">
               <span className="text-xs font-medium text-slate">Check out</span>
               <input
                 type="date"
                 value={checkOut}
                 min={checkIn || today}
                 onChange={(e) => setCheckOut(e.target.value)}
-                className="text-sm text-charcoal bg-transparent outline-none w-full cursor-pointer"
+                className="text-sm text-charcoal bg-transparent outline-none w-full min-w-0 cursor-pointer"
               />
             </span>
           </label>
 
-          <div className="hidden sm:block w-px h-10 bg-pebble" />
+          <div className="hidden lg:block w-px h-10 bg-pebble" />
 
-          <label className="flex-1 flex items-center gap-3 px-3 py-2 sm:px-5 cursor-pointer">
+          <label className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2 lg:px-5 cursor-pointer">
             <Users size={18} className="text-slate shrink-0" />
-            <span className="flex flex-col w-full">
+            <span className="flex flex-col w-full min-w-0">
               <span className="text-xs font-medium text-slate">Guests</span>
               <input
                 type="number"
@@ -125,7 +125,7 @@ export default function SearchPanel({
                 value={guests}
                 onChange={(e) => setGuests(e.target.value)}
                 placeholder="Add guests"
-                className="text-sm text-charcoal placeholder:text-slate bg-transparent outline-none w-full"
+                className="text-sm text-charcoal placeholder:text-slate bg-transparent outline-none w-full min-w-0"
               />
             </span>
           </label>
