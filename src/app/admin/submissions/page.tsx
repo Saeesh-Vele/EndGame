@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import SubmissionsPageClient from "@/components/admin/submissions/SubmissionsPageClient";
 import { createClient } from "@/lib/supabase/server";
 import { getVillaSubmissions } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "Submissions | StayVilla Admin",
+  description:
+    "Properties owners have sent in through the public listing form, ready to review, approve, or reject.",
+};
 
 export default async function AdminSubmissionsPage() {
   const supabase = await createClient();

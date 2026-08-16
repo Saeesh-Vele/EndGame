@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -19,6 +20,12 @@ import {
 import { BookingRequest } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Admin Dashboard | StayVilla Admin",
+  description:
+    "Live operations overview: villa inventory, pending booking requests, monthly inquiry volume, and the latest guest activity.",
+};
 
 function activityVerb(status: BookingRequest["status"]) {
   switch (status) {

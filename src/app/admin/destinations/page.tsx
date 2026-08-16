@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import DestinationDialog from "@/components/admin/destinations/DestinationDialog";
 import DeleteDestinationButton from "@/components/admin/destinations/DeleteDestinationButton";
@@ -6,6 +7,12 @@ import {
   getDestinations,
   getVillaCountsByDestination,
 } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "Destinations | StayVilla Admin",
+  description:
+    "Manage the destinations villas are grouped under, including cover images, slugs, and the SEO copy each listing page uses.",
+};
 
 export default async function AdminDestinationsPage() {
   const supabase = await createClient();

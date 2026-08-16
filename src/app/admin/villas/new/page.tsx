@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import VillaForm from "@/components/admin/villas/VillaForm";
 import { createClient } from "@/lib/supabase/server";
 import { getDestinations } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "Add Villa | StayVilla Admin",
+  description:
+    "Create a new villa listing: pricing, capacity, amenities, photos, and the owner's direct contact details.",
+};
 
 export default async function NewVillaPage() {
   const supabase = await createClient();

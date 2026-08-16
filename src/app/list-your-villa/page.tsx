@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "List Your Villa on StayVilla",
   description:
-    "Put your private villa in front of guests looking for a whole property, not a hotel room. No commission on inquiries, and we visit every property before it goes live.",
+    "Reach guests who want a whole private property, not a hotel room. Zero commission on inquiries, and we visit every villa in person before it goes live.",
   openGraph: {
     title: "List Your Villa on StayVilla",
     description:

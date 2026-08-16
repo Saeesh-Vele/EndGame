@@ -14,6 +14,7 @@ import ReviewsSection from "@/components/villa/ReviewsSection";
 import SimilarVillas from "@/components/villa/SimilarVillas";
 import { createClient } from "@/lib/supabase/server";
 import Breadcrumb from "@/components/shared/Breadcrumb";
+import { truncateForMeta } from "@/lib/meta-description";
 import {
   getVillaBySlug,
   getDestinations,
@@ -39,7 +40,10 @@ export async function generateMetadata({
 
   return {
     title: `${villa.name} — ${villa.location} | StayVilla`,
-    description: villa.description.slice(0, 160),
+    description: truncateForMeta(
+      villa.description,
+      `${villa.name} is a private villa in ${villa.location}, handpicked and verified in person by StayVilla. Book direct with the host.`,
+    ),
   };
 }
 

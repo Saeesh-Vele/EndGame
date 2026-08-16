@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import VillaForm from "@/components/admin/villas/VillaForm";
 import { createClient } from "@/lib/supabase/server";
 import { getDestinations, getVillaById } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "Edit Villa | StayVilla Admin",
+  description:
+    "Update a villa's details, pricing, capacity, amenities, and photo gallery, or take it off the public site.",
+};
 
 export default async function EditVillaPage({
   params,

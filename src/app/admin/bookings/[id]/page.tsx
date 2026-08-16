@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import BookingDetailClient from "@/components/admin/bookings/BookingDetailClient";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminBookingRequestById } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "Booking Request | StayVilla Admin",
+  description:
+    "Full detail for a single booking request: guest contact, dates, price breakdown, status, and internal team notes.",
+};
 
 export default async function BookingDetailPage({
   params,

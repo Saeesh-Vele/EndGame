@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { truncateForMeta } from "@/lib/meta-description";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import VillasPageClient from "@/components/villas/VillasPageClient";
@@ -60,9 +61,10 @@ export async function generateMetadata({
   if (destMeta) {
     return {
       title: `Private Villas in ${destMeta.name} | StayVilla`,
-      description:
-        destMeta.meta_description ??
+      description: truncateForMeta(
+        destMeta.meta_description,
         `Browse handpicked private villas in ${destMeta.name}. Verified owners, transparent pricing, full privacy.`,
+      ),
     };
   }
 

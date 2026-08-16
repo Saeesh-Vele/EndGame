@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,12 @@ import {
   getVillasForAdmin,
   getWhatsappClickCountsByVilla,
 } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "Villas | StayVilla Admin",
+  description:
+    "Manage every villa listed on StayVilla — edit details and photos, publish or hide a property, and track WhatsApp inquiries.",
+};
 
 export default async function AdminVillasPage() {
   const supabase = await createClient();

@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import BookingsPageClient from "@/components/admin/bookings/BookingsPageClient";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminBookingRequests } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "Bookings | StayVilla Admin",
+  description:
+    "Review and manage incoming booking requests. Filter by status and check-in date range, then confirm, cancel, or complete a stay.",
+};
 
 export default async function AdminBookingsPage() {
   const supabase = await createClient();

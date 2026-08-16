@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import HeroSection from "@/components/home/HeroSection";
@@ -12,6 +13,12 @@ import {
 } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "StayVilla — Handpicked Private Villas Across India",
+  description:
+    "Book private villas in Goa, Lonavala, Udaipur and Alibaug. Every stay visited and verified in person, with direct host contact and zero service fees.",
+};
 
 export default async function Home() {
   const supabase = await createClient();
