@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, DM_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,24 @@ export const metadata: Metadata = {
   title: "StayVilla — Handpicked Private Villas Across India",
   description:
     "Handpicked private villas across India. Full privacy, no shared walls, just you and the view.",
+  // The icons themselves are wired up by Next's file conventions:
+  // app/favicon.ico, app/icon.svg, and app/apple-icon.png each emit their own
+  // <link>, and app/manifest.ts emits <link rel="manifest">. Declaring
+  // metadata.icons on top of those would duplicate the tags.
+  appleWebApp: {
+    // Lets an iOS home-screen launch run without Safari chrome, matching the
+    // manifest's display: "standalone" on Android.
+    capable: true,
+    title: "StayVilla",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  // Paints the Android Chrome address bar and the iOS PWA status bar in the
+  // brand forest. Lives on `viewport`, not `metadata` — Next moved themeColor
+  // there and warns if it is set on metadata.
+  themeColor: "#1b4d3e",
 };
 
 export default function RootLayout({
