@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDestinations } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
-  title: "Add Villa | StayVilla Admin",
+  title: "Add Villa",
   description:
     "Create a new villa listing: pricing, capacity, amenities, photos, and the owner's direct contact details.",
 };

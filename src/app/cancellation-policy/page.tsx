@@ -3,7 +3,7 @@ import LegalPage, { type LegalSection } from "@/components/legal/LegalPage";
 import { SITE_CONTACT } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Cancellation Policy | StayVilla",
+  title: "Cancellation Policy",
   description:
     "How cancellations work on StayVilla, who sets the terms, and what to do if a stay falls through.",
   robots: { index: true, follow: true },

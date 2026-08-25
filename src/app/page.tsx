@@ -15,7 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "StayVilla — Handpicked Private Villas Across India",
+  // No `title` — the root layout's `title.default` is the home page title.
   description:
     "Book private villas in Goa, Lonavala, Udaipur and Alibaug. Every stay visited and verified in person, with direct host contact and zero service fees.",
 };

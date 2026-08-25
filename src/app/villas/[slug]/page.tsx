@@ -35,11 +35,11 @@ export async function generateMetadata({
   const villa = await getVillaBySlug(supabase, slug);
 
   if (!villa) {
-    return { title: "Villa not found | StayVilla" };
+    return { title: "Villa Not Found" };
   }
 
   return {
-    title: `${villa.name} — ${villa.location} | StayVilla`,
+    title: `${villa.name} — ${villa.location}`,
     description: truncateForMeta(
       villa.description,
       `${villa.name} is a private villa in ${villa.location}, handpicked and verified in person by StayVilla. Book direct with the host.`,

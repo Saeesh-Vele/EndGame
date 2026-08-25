@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminBookingRequests } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
-  title: "Bookings | StayVilla Admin",
+  title: "Bookings",
   description:
     "Review and manage incoming booking requests. Filter by status and check-in date range, then confirm, cancel, or complete a stay.",
 };

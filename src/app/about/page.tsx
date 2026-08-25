@@ -7,7 +7,7 @@ import ContactForm from "@/components/about/ContactForm";
 import { SITE_CONTACT, whatsappHref } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "About StayVilla",
+  title: "About",
   description:
     "A handpicked collection of private villas across India. Every property is visited and verified in person — no stock photos, no booking fees, no middleman.",
   openGraph: {

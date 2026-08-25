@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getVillaSubmissionById } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
-  title: "Villa Submission | StayVilla Admin",
+  title: "Villa Submission",
   description:
     "Full detail for a property an owner submitted: contact details, location, capacity, asking price, amenities, and review status.",
 };

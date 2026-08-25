@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Your Account | StayVilla",
+  title: "Your Account",
   description: "Manage your booking requests, saved villas, and personal details.",
   robots: { index: false, follow: false },
 };

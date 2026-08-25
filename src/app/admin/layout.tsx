@@ -5,7 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
-  title: "StayVilla Admin",
+  title: {
+    default: "Admin",
+    // Nested template: admin screens keep their scope visible in the tab
+    // while still ending in the site-wide "| StayVilla" suffix.
+    template: "Admin · %s | StayVilla",
+  },
   description: "Manage villas, bookings, and destinations.",
   robots: { index: false, follow: false },
 };

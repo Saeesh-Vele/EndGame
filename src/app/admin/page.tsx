@@ -22,7 +22,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard | StayVilla Admin",
+  title: "Dashboard",
   description:
     "Live operations overview: villa inventory, pending booking requests, monthly inquiry volume, and the latest guest activity.",
 };

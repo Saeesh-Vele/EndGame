@@ -10,7 +10,7 @@ import LoginForm from "@/components/admin/LoginForm";
 // would be a redirect loop.
 
 export const metadata: Metadata = {
-  title: "Sign in | StayVilla Admin",
+  title: "Admin Sign In",
   description: "Sign in to manage villas, bookings, and destinations.",
   robots: { index: false, follow: false },
 };

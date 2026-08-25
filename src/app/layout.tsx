@@ -20,7 +20,13 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "StayVilla — Handpicked Private Villas Across India",
+  title: {
+    // Used for the home page, which sets no title of its own.
+    default: "StayVilla — Handpicked Private Villas Across India",
+    // Every descendant segment sets a bare page name and gets the suffix
+    // from here, so the brand half is defined in exactly one place.
+    template: "%s | StayVilla",
+  },
   description:
     "Handpicked private villas across India. Full privacy, no shared walls, just you and the view.",
   // The icons themselves are wired up by Next's file conventions:

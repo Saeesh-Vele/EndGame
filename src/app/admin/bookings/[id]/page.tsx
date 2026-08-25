@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminBookingRequestById } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
-  title: "Booking Request | StayVilla Admin",
+  title: "Booking Request",
   description:
     "Full detail for a single booking request: guest contact, dates, price breakdown, status, and internal team notes.",
 };

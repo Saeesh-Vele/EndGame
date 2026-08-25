@@ -5,7 +5,7 @@ import AuthForm from "@/components/auth/AuthForm";
 import { safeRedirect } from "@/lib/safe-redirect";
 
 export const metadata: Metadata = {
-  title: "Sign in | StayVilla",
+  title: "Sign In",
   description: "Sign in to see your booking requests and saved villas.",
 };
 

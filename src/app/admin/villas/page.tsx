@@ -11,7 +11,7 @@ import {
 } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
-  title: "Villas | StayVilla Admin",
+  title: "Villas",
   description:
     "Manage every villa listed on StayVilla — edit details and photos, publish or hide a property, and track WhatsApp inquiries.",
 };

@@ -5,7 +5,7 @@ import AuthForm from "@/components/auth/AuthForm";
 import { safeRedirect } from "@/lib/safe-redirect";
 
 export const metadata: Metadata = {
-  title: "Create an account | StayVilla",
+  title: "Create an Account",
   description:
     "Create a StayVilla account to save villas and keep track of your booking requests.",
 };

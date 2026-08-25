@@ -3,7 +3,7 @@ import LegalPage, { type LegalSection } from "@/components/legal/LegalPage";
 import { SITE_CONTACT } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | StayVilla",
+  title: "Privacy Policy",
   description:
     "What StayVilla collects, why, who it is shared with, and how to get it removed.",
   robots: { index: true, follow: true },

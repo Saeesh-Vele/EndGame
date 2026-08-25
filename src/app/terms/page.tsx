@@ -3,7 +3,7 @@ import LegalPage, { type LegalSection } from "@/components/legal/LegalPage";
 import { SITE_CONTACT } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | StayVilla",
+  title: "Terms of Service",
   description:
     "The terms that apply when you browse StayVilla, send a booking request, or list a property.",
   robots: { index: true, follow: true },

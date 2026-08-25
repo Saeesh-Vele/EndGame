@@ -9,7 +9,7 @@ import { getDestinations } from "@/lib/supabase/queries";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "List Your Villa on StayVilla",
+  title: "List Your Villa",
   description:
     "Reach guests who want a whole private property, not a hotel room. Zero commission on inquiries, and we visit every villa in person before it goes live.",
   openGraph: {

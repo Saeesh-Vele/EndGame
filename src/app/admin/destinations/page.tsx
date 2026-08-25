@@ -9,7 +9,7 @@ import {
 } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
-  title: "Destinations | StayVilla Admin",
+  title: "Destinations",
   description:
     "Manage the destinations villas are grouped under, including cover images, slugs, and the SEO copy each listing page uses.",
 };

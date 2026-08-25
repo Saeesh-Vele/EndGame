@@ -60,7 +60,7 @@ export async function generateMetadata({
 
   if (destMeta) {
     return {
-      title: `Private Villas in ${destMeta.name} | StayVilla`,
+      title: `Private Villas in ${destMeta.name}`,
       description: truncateForMeta(
         destMeta.meta_description,
         `Browse handpicked private villas in ${destMeta.name}. Verified owners, transparent pricing, full privacy.`,
@@ -69,7 +69,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: "Browse Private Villas Across India | StayVilla",
+    title: "Browse Private Villas Across India",
     description:
       "Browse handpicked private villas across India. Filter by destination, price, bedrooms, and amenities.",
   };
