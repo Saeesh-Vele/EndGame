@@ -16,6 +16,8 @@ export default function HeroSection({
           alt="Private luxury villa with pool overlooking the coastline"
           fill
           priority
+          sizes="100vw"
+          quality={65}
           className="object-cover object-center"
         />
         {/* Layered luxury scrim gradient for high text contrast */}

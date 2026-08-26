@@ -123,6 +123,7 @@ export default function VillasTable({
               alt={row.original.name}
               fill
               sizes="56px"
+              quality={60}
               className="object-cover"
             />
           </div>

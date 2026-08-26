@@ -176,6 +176,7 @@ export default function BookingDetailClient({
                   alt={booking.villa_name}
                   fill
                   sizes="72px"
+                  quality={60}
                   className="object-cover"
                 />
               </div>

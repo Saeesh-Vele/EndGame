@@ -46,6 +46,7 @@ function BookingCardRow({ booking }: { booking: BookingRequestWithVilla }) {
                 alt={booking.villa_name}
                 fill
                 sizes="96px"
+                quality={60}
                 className="object-cover"
               />
             ) : (

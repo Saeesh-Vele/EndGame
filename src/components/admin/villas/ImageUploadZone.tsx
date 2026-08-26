@@ -157,6 +157,7 @@ export default function ImageUploadZone({
                 alt={`Villa photo ${i + 1}`}
                 fill
                 sizes="120px"
+                quality={60}
                 className="object-cover"
               />
               <button
