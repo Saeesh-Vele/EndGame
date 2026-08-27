@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { SITE_CONTACT } from "@/lib/site";
+import { Fragment } from "react";
 
 /**
  * Shared chrome for /privacy, /terms, and /cancellation-policy.
@@ -20,6 +21,36 @@ export interface LegalSection {
 
 /** Bump when the copy actually changes. */
 export const LEGAL_LAST_UPDATED = "26 July 2026";
+
+/**
+ * Legal copy is authored as plain `string[]`, so an address mentioned inside a
+ * sentence ("write to hello@example.com with ...") would otherwise render as
+ * dead text. Splits on any address and links the matches, leaving the
+ * surrounding prose untouched.
+ */
+const EMAIL_IN_TEXT = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+// Separate, non-global copy for testing each split part: `.test()` on a /g
+// regex advances lastIndex between calls and would alternate false negatives.
+const IS_EMAIL = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+function linkifyEmails(text: string) {
+  const parts = text.split(EMAIL_IN_TEXT);
+  if (parts.length === 1) return text;
+
+  return parts.map((part, i) =>
+    IS_EMAIL.test(part) ? (
+      <a
+        key={i}
+        href={`mailto:${part}`}
+        className="cursor-pointer text-forest hover:text-forest-light transition-colors duration-200"
+      >
+        {part}
+      </a>
+    ) : (
+      <Fragment key={i}>{part}</Fragment>
+    )
+  );
+}
 
 export default function LegalPage({
   title,
@@ -53,7 +84,7 @@ export default function LegalPage({
             </p>
           </div>
 
-          <p className="mt-8 text-slate leading-relaxed">{intro}</p>
+          <p className="mt-8 text-slate leading-relaxed">{linkifyEmails(intro)}</p>
 
           <div className="mt-10 flex flex-col gap-9">
             {sections.map((section, index) => (
@@ -66,7 +97,7 @@ export default function LegalPage({
                     key={paragraph}
                     className="mt-3 text-sm text-slate leading-relaxed"
                   >
-                    {paragraph}
+                    {linkifyEmails(paragraph)}
                   </p>
                 ))}
                 {section.bullets && (
@@ -76,7 +107,7 @@ export default function LegalPage({
                         key={bullet}
                         className="text-sm text-slate leading-relaxed"
                       >
-                        {bullet}
+                        {linkifyEmails(bullet)}
                       </li>
                     ))}
                   </ul>

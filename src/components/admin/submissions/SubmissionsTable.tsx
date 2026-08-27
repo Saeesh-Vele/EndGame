@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SubmissionStatusBadge from "@/components/admin/SubmissionStatusBadge";
+import EmailLink from "@/components/shared/EmailLink";
 import { VillaSubmission } from "@/types";
 
 function formatDate(iso: string) {
@@ -80,7 +81,7 @@ export default function SubmissionsTable({
             {row.original.owner_name}
           </p>
           <p className="text-xs text-slate truncate">
-            {row.original.owner_email}
+            <EmailLink email={row.original.owner_email} />
           </p>
         </div>
       ),

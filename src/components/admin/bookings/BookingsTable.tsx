@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import BookingStatusBadge from "@/components/shared/BookingStatusBadge";
+import EmailLink from "@/components/shared/EmailLink";
 import { BookingRequestWithVilla } from "@/types";
 
 function formatDate(iso: string) {
@@ -68,7 +69,7 @@ export default function BookingsTable({
             {row.original.guest_name}
           </p>
           <p className="text-xs font-medium text-slate truncate">
-            {row.original.guest_email}
+            <EmailLink email={row.original.guest_email} />
           </p>
         </div>
       ),
