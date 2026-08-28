@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Heart, LogOut, Menu, ClipboardList, User, X } from "lucide-react";
@@ -42,6 +42,21 @@ export default function Navbar({
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const panelRef = useRef<HTMLElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const MENU_ID = "mobile-nav";
+
+  /**
+   * `returnFocus` is false when a link closed the menu — the page is about to
+   * change and pulling focus back to the hamburger would fight the navigation.
+   * Escape and outside-click pass true so a keyboard user lands back on the
+   * control they opened.
+   */
+  const closeMenu = useCallback((returnFocus = false) => {
+    setMenuOpen(false);
+    if (returnFocus) triggerRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     if (!transparent) return;
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -61,17 +76,81 @@ export default function Navbar({
     };
   }, [menuOpen]);
 
+  // Escape closes and hands focus back to the trigger. Tab is cycled through
+  // the trigger plus the panel's own controls so focus can't wander into the
+  // page behind an open menu.
   useEffect(() => {
+    if (!menuOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && menuOpen) {
-        setMenuOpen(false);
+      if (e.key === "Escape") {
+        closeMenu(true);
+        return;
       }
+      if (e.key !== "Tab") return;
+
+      const panel = panelRef.current;
+      const trigger = triggerRef.current;
+      if (!panel || !trigger) return;
+
+      const items = [
+        trigger,
+        ...Array.from(
+          panel.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        ),
+      ];
+      const index = items.indexOf(document.activeElement as HTMLElement);
+      if (index === -1) return;
+
+      const next = e.shiftKey
+        ? items[(index - 1 + items.length) % items.length]
+        : items[(index + 1) % items.length];
+
+      e.preventDefault();
+      next.focus();
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [menuOpen, closeMenu]);
+
+  // Outside click. Pointerdown rather than click so a drag that starts outside
+  // still dismisses, and the trigger is excluded so it keeps toggling.
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target)) return;
+      if (triggerRef.current?.contains(target)) return;
+      closeMenu(true);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [menuOpen, closeMenu]);
+
+  // Links in the panel close it themselves; browser back/forward does not go
+  // through them, so listen for popstate. Closing from an event callback
+  // rather than an effect body also keeps react-hooks/set-state-in-effect happy.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handlePopState = () => closeMenu(false);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [menuOpen, closeMenu]);
+
+  // Move focus into the panel when it opens, so a keyboard user is not left
+  // on the trigger with the menu silently open behind them.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const first = panelRef.current?.querySelector<HTMLElement>("a[href], button");
+    first?.focus();
   }, [menuOpen]);
 
-  const isSolid = !transparent || scrolled;
+  const isSolid = !transparent || scrolled || menuOpen;
 
   const handleSignOut = async () => {
     setMenuOpen(false);
@@ -85,13 +164,16 @@ export default function Navbar({
 
   return (
     <header
-      className={`fixed top-0 inset-x-0 z-50 pt-[env(safe-area-inset-top)] transition-all duration-300 ${
-        isSolid
-          ? "bg-linen/95 backdrop-blur-md border-b border-pebble/60 shadow-xs"
-          : "bg-transparent"
-      }`}
+      className="fixed top-0 inset-x-0 z-50"
     >
-      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+      <div
+        className={`relative z-10 pt-[env(safe-area-inset-top)] transition-all duration-300 ${
+          isSolid
+            ? "bg-linen/95 backdrop-blur-md border-b border-pebble/60 shadow-xs"
+            : "bg-transparent"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="flex items-center justify-between h-18 py-4">
           <Link href="/" className="flex items-center gap-2 cursor-pointer group">
             <svg
@@ -227,23 +309,39 @@ export default function Navbar({
           </div>
 
           <Button
+            ref={triggerRef}
             type="button"
             variant="ghost"
             size="icon"
-            onClick={() => setMenuOpen((v) => !v)}
+            onClick={() => (menuOpen ? closeMenu(false) : setMenuOpen(true))}
             className={`md:hidden min-h-[44px] min-w-[44px] ${
               isSolid ? "text-charcoal" : "text-white"
             }`}
-            aria-label="Toggle menu"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
+            aria-controls={MENU_ID}
           >
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </Button>
+          </div>
         </div>
       </div>
 
       {menuOpen && (
-        <div className="md:hidden bg-linen/98 backdrop-blur-md border-t border-pebble max-h-[calc(100vh-4.5rem)] overflow-y-auto pb-[max(2rem,env(safe-area-inset-bottom))] shadow-xl">
+        <>
+          {/* Dimmed backdrop: the visible affordance for "tap anywhere to
+              close", and a target for pointer users who never press Escape.
+              Sits under the bar and the panel, both of which are z-10. */}
+          <div
+            className="md:hidden fixed inset-0 z-0 bg-charcoal/40 backdrop-blur-xs"
+            onClick={() => closeMenu(true)}
+            aria-hidden="true"
+          />
+          <nav
+            id={MENU_ID}
+            ref={panelRef}
+            aria-label="Mobile"
+            className="relative z-10 md:hidden bg-linen/98 backdrop-blur-md border-t border-pebble max-h-[calc(100vh-4.5rem)] overflow-y-auto pb-[max(2rem,env(safe-area-inset-bottom))] shadow-xl">
           <div className="px-5 py-5 flex flex-col gap-4">
             {links.map((link) => {
               const active =
@@ -253,7 +351,7 @@ export default function Navbar({
                 <Link
                   key={link.label}
                   href={link.href}
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => closeMenu(false)}
                   className={`cursor-pointer text-sm py-1 font-medium ${
                     active ? "text-forest font-semibold" : "text-charcoal"
                   }`}
@@ -275,7 +373,7 @@ export default function Navbar({
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMenuOpen(false)}
+                    onClick={() => closeMenu(false)}
                     className="cursor-pointer flex items-center gap-2.5 text-charcoal text-sm py-1"
                   >
                     <item.icon size={15} className="text-slate" />
@@ -284,7 +382,7 @@ export default function Navbar({
                 ))}
                 <Link
                   href="/dashboard#profile"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => closeMenu(false)}
                   className="cursor-pointer flex items-center gap-2.5 text-charcoal text-sm py-1"
                 >
                   <User size={15} className="text-slate" />
@@ -302,7 +400,7 @@ export default function Navbar({
             ) : (
               <Link
                 href="/auth/login"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => closeMenu(false)}
                 className="cursor-pointer text-charcoal text-sm py-1 font-medium"
               >
                 Sign in
@@ -310,12 +408,13 @@ export default function Navbar({
             )}
 
             <Button asChild size="lg" className="w-full text-center mt-2">
-              <Link href="/list-your-villa" onClick={() => setMenuOpen(false)}>
+              <Link href="/list-your-villa" onClick={() => closeMenu(false)}>
                 List your villa
               </Link>
             </Button>
           </div>
-        </div>
+          </nav>
+        </>
       )}
     </header>
   );
