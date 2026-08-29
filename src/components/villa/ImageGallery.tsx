@@ -26,6 +26,19 @@ export default function ImageGallery({
   const [hero, ...rest] = images;
   const gridImages = rest.slice(0, 4);
 
+  // Publishing requires at least one photo, so this only shows for a listing
+  // whose images were removed directly in the database. Rendering the grid
+  // regardless would hand next/image an undefined `src`.
+  if (images.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-6">
+        <div className="flex h-56 sm:h-[480px] items-center justify-center rounded-2xl border border-pebble bg-sandstone text-sm font-medium text-slate">
+          Photos of this villa are coming soon.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-6">

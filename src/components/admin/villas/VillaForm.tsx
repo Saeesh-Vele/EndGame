@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,9 +22,6 @@ import { createVilla, updateVilla } from "@/app/admin/actions";
 import { Destination, Villa } from "@/types";
 import { slugify } from "@/lib/slugify";
 import { FEATURE_AMENITIES, ALL_AMENITIES } from "@/lib/amenities";
-
-const PLACEHOLDER_IMAGE =
-  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1400&auto=format&fit=crop";
 
 export default function VillaForm({
   villa,
@@ -79,6 +76,15 @@ export default function VillaForm({
   );
   const [ownerEmail, setOwnerEmail] = useState(villa?.owner_email ?? "");
   const [isActive, setIsActive] = useState(villa?.is_active ?? true);
+  const [photoError, setPhotoError] = useState(false);
+
+  /**
+   * A draft may legitimately have no photos yet — an admin can start a listing
+   * and come back to it. Publishing is the point where at least one is
+   * required, because `is_active` is exactly what the public queries filter on,
+   * so an active villa with no images would render an empty card and gallery.
+   */
+  const needsPhotoToPublish = isActive && images.length === 0;
 
   const toggleAmenity = (amenity: string) => {
     setSelectedAmenities((prev) =>
@@ -105,6 +111,17 @@ export default function VillaForm({
       toast.error("Please fill in the villa name, destination, and price.");
       return;
     }
+
+    if (needsPhotoToPublish) {
+      setPhotoError(true);
+      toast.error("Add at least one photo before publishing this villa.");
+      document
+        .getElementById("villa-photos")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    setPhotoError(false);
 
     const destinationName =
       destinations.find((d) => d.id === destinationId)?.name ?? "";
@@ -136,7 +153,7 @@ export default function VillaForm({
       beds: Number(beds) || Number(bedrooms) || 1,
       amenities: compactAmenities,
       full_amenities: selectedAmenities,
-      images: images.length > 0 ? images : [PLACEHOLDER_IMAGE],
+      images,
       owner_whatsapp: ownerWhatsapp.trim(),
       owner_name: ownerName.trim(),
       owner_email: ownerEmail.trim(),
@@ -343,13 +360,36 @@ export default function VillaForm({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-pebble bg-white p-6 mt-6">
-        <h2 className="text-base font-medium text-charcoal mb-5">Photos</h2>
+      <div
+        id="villa-photos"
+        className={`rounded-2xl border bg-white p-6 mt-6 ${
+          photoError ? "border-destructive" : "border-pebble"
+        }`}
+      >
+        <h2 className="text-base font-medium text-charcoal mb-1">Photos</h2>
+        <p className="text-sm text-slate mb-5">
+          At least one photo is required to publish. A draft can be saved
+          without any.
+        </p>
         <ImageUploadZone
           images={images}
-          onChange={setImages}
+          onChange={(next) => {
+            setImages(next);
+            if (next.length > 0) setPhotoError(false);
+          }}
           onUploadingChange={setUploading}
         />
+
+        {photoError && (
+          <p
+            role="alert"
+            className="mt-3.5 flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3.5 py-3 text-xs font-semibold text-destructive"
+          >
+            <AlertCircle size={15} className="shrink-0" />
+            Add at least one photo, or turn off &ldquo;Active&rdquo; below to
+            save this villa as a draft.
+          </p>
+        )}
       </div>
 
       <div className="rounded-2xl border border-pebble bg-white p-6 mt-6">
@@ -398,8 +438,27 @@ export default function VillaForm({
               Listed publicly on the site when on.
             </p>
           </div>
-          <Switch checked={isActive} onCheckedChange={setIsActive} />
+          <Switch
+            checked={isActive}
+            onCheckedChange={(checked) => {
+              setIsActive(checked);
+              if (!checked) setPhotoError(false);
+            }}
+            aria-describedby={
+              needsPhotoToPublish ? "villa-active-hint" : undefined
+            }
+          />
         </div>
+
+        {needsPhotoToPublish && (
+          <p
+            id="villa-active-hint"
+            className="mt-2.5 text-xs font-medium text-destructive"
+          >
+            This villa has no photos yet. Add one before saving, or turn
+            &ldquo;Active&rdquo; off to keep it as a draft.
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-3 mt-6">

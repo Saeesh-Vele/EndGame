@@ -5,12 +5,21 @@
  * PLACEHOLDERS — replace these with the real inbox and support number before
  * launch. They're centralised here so that's one edit rather than a grep.
  */
+/**
+ * Display form, with spaces. The single source of truth for the support
+ * number — the digits used in links are derived from it below.
+ */
+const WHATSAPP_DISPLAY = "+91 95615 92734";
+
 export const SITE_CONTACT = {
   email: "saeeshvele@gmail.com",
-  /** Display form, with spaces. */
-  whatsapp: "+91 95615 92734",
-  /** Digits only, for wa.me and tel: links. */
-  whatsappDigits: "919876543210",
+  whatsapp: WHATSAPP_DISPLAY,
+  /**
+   * Digits only, for wa.me and tel: links. Derived rather than written out a
+   * second time: these two were previously maintained by hand and had drifted
+   * apart, so the site displayed one number and messaged a different one.
+   */
+  whatsappDigits: WHATSAPP_DISPLAY.replace(/\D/g, ""),
   /** Where the registered business sits — used in the legal pages. */
   jurisdiction: "Maharashtra, India",
 } as const;

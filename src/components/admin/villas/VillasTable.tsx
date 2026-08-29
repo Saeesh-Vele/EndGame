@@ -45,9 +45,6 @@ import { deleteVilla, toggleVillaActive } from "@/app/admin/actions";
 import { Villa } from "@/types";
 import { toast } from "sonner";
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1400&auto=format&fit=crop";
-
 function SortButton({
   label,
   onClick,
@@ -118,14 +115,20 @@ export default function VillasTable({
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <div className="relative h-11 w-14 shrink-0 rounded-lg overflow-hidden bg-sandstone border border-pebble/40">
-            <Image
-              src={row.original.images[0] ?? FALLBACK_IMAGE}
-              alt={row.original.name}
-              fill
-              sizes="56px"
-              quality={60}
-              className="object-cover"
-            />
+            {row.original.images[0] ? (
+              <Image
+                src={row.original.images[0]}
+                alt={row.original.name}
+                fill
+                sizes="56px"
+                quality={60}
+                className="object-cover"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-[10px] font-medium text-slate">
+                No photo
+              </span>
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-charcoal truncate">

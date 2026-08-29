@@ -21,13 +21,19 @@ export default function VillaCard({ villa }: { villa: Villa }) {
   return (
     <Link href={`/villas/${villa.slug}`} className="group block cursor-pointer">
       <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-sandstone">
-        <Image
-          src={villa.images[0]}
-          alt={villa.name}
-          fill
-          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-500 ease-out-smooth group-hover:scale-[1.04]"
-        />
+        {villa.images[0] ? (
+          <Image
+            src={villa.images[0]}
+            alt={villa.name}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 ease-out-smooth group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs font-medium text-slate">
+            No photo yet
+          </div>
+        )}
 
         {villa.is_superhost && (
           <Badge className="absolute top-3 left-3 bg-charcoal/80 text-white backdrop-blur-md border border-white/20 font-medium shadow-xs text-xs px-2.5 py-1">

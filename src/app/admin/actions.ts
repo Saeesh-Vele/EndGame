@@ -91,6 +91,18 @@ export interface VillaFormValues {
   is_active: boolean;
 }
 
+/**
+ * `is_active` is what the public queries filter on, so an active villa with no
+ * images renders an empty card and an empty gallery. Drafts are allowed to have
+ * none — the rule applies at the point of publishing.
+ *
+ * Enforced here as well as in the form because a Server Action is a public
+ * endpoint: the client-side check is the good error message, this is the one
+ * that actually holds.
+ */
+const NO_PHOTO_ERROR =
+  "Add at least one photo before publishing this villa, or save it as a draft.";
+
 function toVillaInput(values: VillaFormValues): VillaInput {
   return {
     name: values.name,
@@ -121,6 +133,10 @@ export async function createVilla(
   const { client, error } = await requireAdmin();
   if (!client) return { success: false, error };
 
+  if (values.is_active && values.images.length === 0) {
+    return { success: false, error: NO_PHOTO_ERROR };
+  }
+
   try {
     await insertVilla(client, toVillaInput(values));
     revalidateVillas();
@@ -136,6 +152,10 @@ export async function updateVilla(
 ): Promise<ActionResult> {
   const { client, error } = await requireAdmin();
   if (!client) return { success: false, error };
+
+  if (values.is_active && values.images.length === 0) {
+    return { success: false, error: NO_PHOTO_ERROR };
+  }
 
   try {
     // Images the admin removed in this edit are dropped from Storage so the
@@ -187,6 +207,17 @@ export async function toggleVillaActive(
   if (!client) return { success: false, error };
 
   try {
+    if (isActive) {
+      const villa = await getVillaById(client, id);
+      if (!villa?.images.length) {
+        return {
+          success: false,
+          error:
+            "This villa has no photos. Add one on its edit page before making it live.",
+        };
+      }
+    }
+
     await patchVilla(client, id, { is_active: isActive });
     revalidateVillas(id);
     return { success: true };
