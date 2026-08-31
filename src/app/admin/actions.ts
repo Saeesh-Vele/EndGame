@@ -5,8 +5,12 @@ import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin, signOut } from "@/lib/supabase/admin";
-import { deleteVillaImagesByUrl } from "@/lib/supabase/storage";
+import {
+  deleteVillaImagesByUrl,
+  VillaImageCleanupError,
+} from "@/lib/supabase/storage";
 import { notifyBookingStatusChange } from "@/lib/notifications";
+import { describeDbError, describeImageCleanupError } from "@/lib/errors";
 import {
   countVillasInDestination,
   createDestination as insertDestination,
@@ -26,7 +30,17 @@ import {
 } from "@/lib/supabase/queries";
 import { BookingRequest, VillaSubmissionStatus } from "@/types";
 
-export type ActionResult = { success: boolean; error?: string };
+/**
+ * `warning` is for work that partly succeeded: the row was written, but a
+ * follow-on step wasn't. Removing images from Storage is the only case today
+ * — the villa is saved either way, so it must not read as a failed save, and
+ * it must not read as a clean one either.
+ */
+export type ActionResult = {
+  success: boolean;
+  error?: string;
+  warning?: string;
+};
 
 /**
  * Every mutation below re-verifies admin status here rather than trusting
@@ -43,19 +57,56 @@ async function requireAdmin(): Promise<
 > {
   const client = await createClient();
 
+  // "Not authorized" covered two different problems. An expired cookie and an
+  // account that was never an admin need different things done about them.
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+
+  if (!user) {
+    return {
+      error:
+        "Your admin session has expired, so nothing was saved. Sign in again and retry.",
+    };
+  }
+
   if (!(await isAdmin(client))) {
-    return { error: "Not authorized. Sign in as an admin and try again." };
+    return {
+      error:
+        "This account doesn't have admin access, so nothing was changed. Ask an existing admin to grant it.",
+    };
   }
 
   return { client };
 }
 
-function failure(error: unknown, fallback: string): ActionResult {
+/**
+ * Every catch below funnels through here.
+ *
+ * PostgrestError extends Error, so the previous `error.message` passthrough
+ * put raw database text in the admin's toast — `duplicate key value violates
+ * unique constraint "villas_slug_key"` instead of "that slug is taken".
+ * describeDbError logs the full error and returns something actionable;
+ * `byCode` is where a caller says what a given constraint means for it.
+ */
+function failure(
+  error: unknown,
+  fallback: string,
+  options: { scope: string; byCode?: Record<string, string> }
+): ActionResult {
   return {
     success: false,
-    error: error instanceof Error ? error.message : fallback,
+    error: describeDbError(error, {
+      fallback,
+      scope: options.scope,
+      byCode: options.byCode,
+    }),
   };
 }
+
+/** Both villa writes hit the same unique index on `slug`. */
+const VILLA_SLUG_TAKEN =
+  "Another villa already uses that slug. Change it to something unique and save again.";
 
 /** Refreshes every admin screen that could be showing the mutated row. */
 function revalidateVillas(id?: string) {
@@ -142,7 +193,14 @@ export async function createVilla(
     revalidateVillas();
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't create the villa.");
+    return failure(err, "Couldn't create the villa. Try again in a moment.", {
+      scope: "admin:villa-create",
+      byCode: {
+        "23505": VILLA_SLUG_TAKEN,
+        "23503":
+          "That destination no longer exists. Pick another one and save again.",
+      },
+    });
   }
 }
 
@@ -168,14 +226,37 @@ export async function updateVilla(
 
     await patchVilla(client, id, toVillaInput(values));
 
+    // The villa is saved at this point. A cleanup failure leaves orphaned
+    // objects in the bucket, which is worth saying — but it can't turn a
+    // completed save into an error, so it comes back as a warning.
+    let warning: string | undefined;
+
     if (removed.length > 0) {
-      await deleteVillaImagesByUrl(client, removed);
+      try {
+        await deleteVillaImagesByUrl(client, removed);
+      } catch (cleanupError) {
+        if (!(cleanupError instanceof VillaImageCleanupError)) throw cleanupError;
+        warning = describeImageCleanupError(
+          cleanupError.cause,
+          cleanupError.count,
+          "saved"
+        );
+      }
     }
 
     revalidateVillas(id);
-    return { success: true };
+    return { success: true, warning };
   } catch (err) {
-    return failure(err, "Couldn't save the villa.");
+    return failure(err, "Couldn't save the villa. Try again in a moment.", {
+      scope: "admin:villa-update",
+      byCode: {
+        "23505": VILLA_SLUG_TAKEN,
+        "23503":
+          "That destination no longer exists. Pick another one and save again.",
+        PGRST116:
+          "This villa has been deleted — nothing was saved. Go back to the villa list.",
+      },
+    });
   }
 }
 
@@ -188,14 +269,33 @@ export async function deleteVilla(id: string): Promise<ActionResult> {
 
     await removeVilla(client, id);
 
+    // Same as updateVilla: the row is gone whether or not its files went with
+    // it, so a cleanup failure is reported alongside the success.
+    let warning: string | undefined;
+
     if (villa?.images.length) {
-      await deleteVillaImagesByUrl(client, villa.images);
+      try {
+        await deleteVillaImagesByUrl(client, villa.images);
+      } catch (cleanupError) {
+        if (!(cleanupError instanceof VillaImageCleanupError)) throw cleanupError;
+        warning = describeImageCleanupError(
+          cleanupError.cause,
+          cleanupError.count,
+          "deleted"
+        );
+      }
     }
 
     revalidateVillas();
-    return { success: true };
+    return { success: true, warning };
   } catch (err) {
-    return failure(err, "Couldn't delete the villa.");
+    return failure(err, "Couldn't delete the villa. Try again in a moment.", {
+      scope: "admin:villa-delete",
+      byCode: {
+        "23503":
+          "This villa still has booking requests attached. Delete those first.",
+      },
+    });
   }
 }
 
@@ -222,7 +322,9 @@ export async function toggleVillaActive(
     revalidateVillas(id);
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't update the villa's status.");
+    return failure(err, "Couldn't update the villa's status. Try again in a moment.", {
+      scope: "admin:villa-toggle",
+    });
   }
 }
 
@@ -271,7 +373,15 @@ export async function updateBookingStatus(
 
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't update the booking status.");
+    return failure(err, "Couldn't update the booking status. Try again in a moment.", {
+      scope: "admin:booking-status",
+      byCode: {
+        PGRST116:
+          "This booking request no longer exists — it may have been deleted in another tab.",
+        "23514":
+          "That status isn't one this booking can move to. Reload the page and try again.",
+      },
+    });
   }
 }
 
@@ -287,7 +397,13 @@ export async function updateBookingNotes(
     revalidateBookings(id);
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't save the notes.");
+    return failure(err, "Couldn't save the notes. Try again in a moment.", {
+      scope: "admin:booking-notes",
+      byCode: {
+        "22001": "Those notes are longer than the field allows. Trim them and save again.",
+        PGRST116: "This booking request no longer exists, so the notes weren't saved.",
+      },
+    });
   }
 }
 
@@ -300,7 +416,9 @@ export async function deleteBooking(id: string): Promise<ActionResult> {
     revalidateBookings();
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't delete the booking request.");
+    return failure(err, "Couldn't delete the booking request. Try again in a moment.", {
+      scope: "admin:booking-delete",
+    });
   }
 }
 
@@ -346,7 +464,13 @@ export async function createDestination(
     revalidateDestinations();
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't add the destination.");
+    return failure(err, "Couldn't add the destination. Try again in a moment.", {
+      scope: "admin:destination-create",
+      byCode: {
+        "23505":
+          "A destination with that name or slug already exists. Pick another.",
+      },
+    });
   }
 }
 
@@ -362,7 +486,14 @@ export async function updateDestination(
     revalidateDestinations();
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't save the destination.");
+    return failure(err, "Couldn't save the destination. Try again in a moment.", {
+      scope: "admin:destination-update",
+      byCode: {
+        "23505":
+          "Another destination already uses that name or slug. Pick another.",
+        PGRST116: "This destination has been deleted — nothing was saved.",
+      },
+    });
   }
 }
 
@@ -388,7 +519,13 @@ export async function deleteDestination(id: string): Promise<ActionResult> {
     revalidateDestinations();
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't delete the destination.");
+    return failure(err, "Couldn't delete the destination. Try again in a moment.", {
+      scope: "admin:destination-delete",
+      byCode: {
+        "23503":
+          "Something still references this destination. Move or delete those villas first.",
+      },
+    });
   }
 }
 
@@ -419,7 +556,13 @@ export async function updateSubmissionStatus(
     revalidateSubmissions(id);
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't update the submission status.");
+    return failure(err, "Couldn't update the submission status. Try again in a moment.", {
+      scope: "admin:submission-status",
+      byCode: {
+        PGRST116:
+          "This submission no longer exists — it may have been deleted in another tab.",
+      },
+    });
   }
 }
 
@@ -435,7 +578,13 @@ export async function updateSubmissionNotes(
     revalidateSubmissions(id);
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't save the notes.");
+    return failure(err, "Couldn't save the notes. Try again in a moment.", {
+      scope: "admin:submission-notes",
+      byCode: {
+        "22001": "Those notes are longer than the field allows. Trim them and save again.",
+        PGRST116: "This submission no longer exists, so the notes weren't saved.",
+      },
+    });
   }
 }
 
@@ -448,7 +597,9 @@ export async function deleteSubmission(id: string): Promise<ActionResult> {
     revalidateSubmissions();
     return { success: true };
   } catch (err) {
-    return failure(err, "Couldn't delete the submission.");
+    return failure(err, "Couldn't delete the submission. Try again in a moment.", {
+      scope: "admin:submission-delete",
+    });
   }
 }
 

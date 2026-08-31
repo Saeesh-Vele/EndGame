@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { describeAuthError, describeDbError } from "@/lib/errors";
 
 export default function LoginForm({
   initialError,
@@ -26,44 +27,73 @@ export default function LoginForm({
     setError(undefined);
     setPending(true);
 
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword(
-      { email: email.trim(), password }
-    );
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
-    if (signInError || !data.user) {
-      // Supabase returns a deliberately vague message for bad credentials so
-      // the form can't be used to probe which emails exist. Keep it that way.
+      if (signInError || !data.user) {
+        // Supabase returns deliberately vague wording for bad credentials so
+        // the form can't be used to probe which emails exist. Keep it that way.
+        setError(
+          describeAuthError(signInError, {
+            scope: "admin:signin",
+            fallback: "Couldn't sign you in just now. Try again in a moment.",
+          })
+        );
+        setPending(false);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      // A failed lookup is not the same as "you're not an admin". Saying
+      // "access denied" here sends a real admin off to reset a password that
+      // was never the problem.
+      if (profileError) {
+        await supabase.auth.signOut();
+        setError(
+          describeDbError(profileError, {
+            scope: "admin:profile-lookup",
+            fallback:
+              "Signed in, but we couldn't check your admin access. Try again in a moment.",
+          })
+        );
+        setPending(false);
+        return;
+      }
+
+      if (profile?.is_admin !== true) {
+        // Valid credentials, no admin rights: don't leave a usable session
+        // sitting in the browser.
+        await supabase.auth.signOut();
+        setError(
+          "That account is valid but has no admin access. Ask an existing admin to grant it."
+        );
+        setPassword("");
+        setPending(false);
+        return;
+      }
+
+      // refresh() so the server components behind /admin re-render with the
+      // session cookie that was just written.
+      router.replace("/admin");
+      router.refresh();
+    } catch (thrown) {
       setError(
-        signInError?.message === "Invalid login credentials"
-          ? "Wrong email or password."
-          : signInError?.message ?? "Couldn't sign you in. Try again."
+        describeAuthError(thrown, {
+          scope: "admin:signin",
+          fallback:
+            "Something went wrong reaching the sign-in service. Try again in a moment.",
+        })
       );
       setPending(false);
-      return;
     }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", data.user.id)
-      .maybeSingle();
-
-    if (profile?.is_admin !== true) {
-      // Valid credentials, no admin rights: don't leave a usable session
-      // sitting in the browser.
-      await supabase.auth.signOut();
-      setError("Access denied. That account doesn't have admin access.");
-      setPassword("");
-      setPending(false);
-      return;
-    }
-
-    // refresh() so the server components behind /admin re-render with the
-    // session cookie that was just written.
-    router.replace("/admin");
-    router.refresh();
   };
 
   return (

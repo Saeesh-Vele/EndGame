@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import {
   submitContactMessage,
+  type ContactField,
   type ContactFormValues,
 } from "@/app/about/actions";
 import { Input } from "@/components/ui/input";
@@ -15,12 +16,45 @@ const COOLDOWN_SECONDS = 30;
 
 const EMPTY: ContactFormValues = { name: "", email: "", message: "" };
 
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** Message under a single input. Renders nothing when the field is fine. */
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+
+  return (
+    <p
+      id={id}
+      role="alert"
+      className="flex items-start gap-1.5 text-xs font-medium text-destructive"
+    >
+      <AlertCircle size={13} className="mt-px shrink-0" />
+      <span>{message}</span>
+    </p>
+  );
+}
+
 export default function ContactForm() {
   const [values, setValues] = useState<ContactFormValues>(EMPTY);
+  /** Failures that belong to one input, shown under it. */
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<ContactField, string>>
+  >({});
+  /** Failures that don't — a rejected insert, a dropped connection. */
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [pending, startTransition] = useTransition();
+
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
+
+  const refs: Record<ContactField, React.RefObject<HTMLElement | null>> = {
+    name: nameRef,
+    email: emailRef,
+    message: messageRef,
+  };
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -28,9 +62,37 @@ export default function ContactForm() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  const set = (key: keyof ContactFormValues, value: string) => {
+  const set = (key: ContactField, value: string) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setError(null);
+    // Clear only this field's error — the others are still true.
+    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
+  };
+
+  /** The same rules the Server Action applies, run first so the sender gets
+   *  them without a round trip. The action is still the one that decides. */
+  const validate = (): Partial<Record<ContactField, string>> => {
+    const problems: Partial<Record<ContactField, string>> = {};
+
+    if (!values.name.trim()) problems.name = "Tell us who to reply to.";
+
+    const email = values.email.trim();
+    if (!email) problems.email = "We need an email address to reply to.";
+    else if (!EMAIL.test(email))
+      problems.email = "That email doesn't look right — check for a typo.";
+
+    const message = values.message.trim();
+    if (!message)
+      problems.message = "Add a message — tell us what you're looking for.";
+    else if (message.length < 10)
+      problems.message = "Could you add a little more detail? At least a sentence.";
+
+    return problems;
+  };
+
+  const showFieldError = (field: ContactField, message: string) => {
+    setFieldErrors({ [field]: message });
+    refs[field].current?.focus();
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -38,6 +100,19 @@ export default function ContactForm() {
     if (pending || cooldown > 0) return;
 
     setError(null);
+
+    const problems = validate();
+    const firstInvalid = (["name", "email", "message"] as const).find(
+      (field) => problems[field]
+    );
+
+    if (firstInvalid) {
+      setFieldErrors(problems);
+      refs[firstInvalid].current?.focus();
+      return;
+    }
+
+    setFieldErrors({});
 
     startTransition(async () => {
       const result = await submitContactMessage(values);
@@ -49,7 +124,12 @@ export default function ContactForm() {
         return;
       }
 
-      setError(result.error ?? "Couldn't send your message.");
+      if (result.field) {
+        showFieldError(result.field, result.error);
+        return;
+      }
+
+      setError(result.error);
     });
   };
 
@@ -78,14 +158,18 @@ export default function ContactForm() {
             Name
           </label>
           <Input
+            ref={nameRef}
             id="contact-name"
             value={values.name}
             onChange={(e) => set("name", e.target.value)}
             placeholder="Rhea Menon"
             autoComplete="name"
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-describedby={fieldErrors.name ? "contact-name-error" : undefined}
             required
             disabled={pending}
           />
+          <FieldError id="contact-name-error" message={fieldErrors.name} />
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -93,15 +177,21 @@ export default function ContactForm() {
             Email
           </label>
           <Input
+            ref={emailRef}
             id="contact-email"
             type="email"
             value={values.email}
             onChange={(e) => set("email", e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={
+              fieldErrors.email ? "contact-email-error" : undefined
+            }
             required
             disabled={pending}
           />
+          <FieldError id="contact-email-error" message={fieldErrors.email} />
         </div>
       </div>
 
@@ -110,15 +200,21 @@ export default function ContactForm() {
           Message
         </label>
         <Textarea
+          ref={messageRef}
           id="contact-message"
           value={values.message}
           onChange={(e) => set("message", e.target.value)}
           rows={5}
           placeholder="We're four people looking for somewhere in North Goa over New Year…"
+          aria-invalid={Boolean(fieldErrors.message)}
+          aria-describedby={
+            fieldErrors.message ? "contact-message-error" : undefined
+          }
           required
           disabled={pending}
           className="resize-y"
         />
+        <FieldError id="contact-message-error" message={fieldErrors.message} />
       </div>
 
       <Button

@@ -23,6 +23,22 @@ import { Destination, Villa } from "@/types";
 import { slugify } from "@/lib/slugify";
 import { FEATURE_AMENITIES, ALL_AMENITIES } from "@/lib/amenities";
 
+/** Message under a single input. Renders nothing when the field is fine. */
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+
+  return (
+    <p
+      id={id}
+      role="alert"
+      className="flex items-start gap-1.5 text-xs font-medium text-destructive"
+    >
+      <AlertCircle size={13} className="mt-px shrink-0" />
+      <span>{message}</span>
+    </p>
+  );
+}
+
 export default function VillaForm({
   villa,
   destinations,
@@ -77,6 +93,10 @@ export default function VillaForm({
   const [ownerEmail, setOwnerEmail] = useState(villa?.owner_email ?? "");
   const [isActive, setIsActive] = useState(villa?.is_active ?? true);
   const [photoError, setPhotoError] = useState(false);
+  /** Per-input problems, rendered under the field they belong to. */
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<"name" | "slug" | "destination" | "price", string>>
+  >({});
 
   /**
    * A draft may legitimately have no photos yet — an admin can start a listing
@@ -85,6 +105,9 @@ export default function VillaForm({
    * so an active villa with no images would render an empty card and gallery.
    */
   const needsPhotoToPublish = isActive && images.length === 0;
+
+  const clearFieldError = (field: "name" | "slug" | "destination" | "price") =>
+    setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
 
   const toggleAmenity = (amenity: string) => {
     setSelectedAmenities((prev) =>
@@ -103,14 +126,41 @@ export default function VillaForm({
     e.preventDefault();
 
     if (uploading) {
-      toast.error("Wait for the photos to finish uploading.");
+      toast.error("Photos are still uploading. Wait for them to finish, then save.");
       return;
     }
 
-    if (!name.trim() || !destinationId || !pricePerNight) {
-      toast.error("Please fill in the villa name, destination, and price.");
+    // One message per field, next to the field — a combined "fill in the name,
+    // destination and price" makes the admin check three inputs to find one.
+    const problems: Partial<
+      Record<"name" | "slug" | "destination" | "price", string>
+    > = {};
+
+    if (!name.trim()) problems.name = "Give the villa a name.";
+    if (!slug.trim()) problems.slug = "A slug is required — it's the villa's URL.";
+    if (!destinationId)
+      problems.destination = "Pick the destination this villa belongs to.";
+
+    const price = Number(pricePerNight);
+    if (!pricePerNight.trim()) problems.price = "Set a base nightly price.";
+    else if (!Number.isFinite(price) || price <= 0)
+      problems.price = "The nightly price has to be a number above zero.";
+
+    const firstInvalid = (["name", "slug", "destination", "price"] as const).find(
+      (field) => problems[field]
+    );
+
+    if (firstInvalid) {
+      setFieldErrors(problems);
+      const el = document.getElementById(
+        firstInvalid === "price" ? "price" : firstInvalid
+      );
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      (el as HTMLElement | null)?.focus({ preventScroll: true });
       return;
     }
+
+    setFieldErrors({});
 
     if (needsPhotoToPublish) {
       setPhotoError(true);
@@ -167,11 +217,28 @@ export default function VillaForm({
           : await createVilla(values);
 
       if (!result.success) {
-        toast.error(result.error ?? "Couldn't save the villa.");
+        const message = result.error ?? "Couldn't save the villa.";
+        // A slug clash is the one failure the admin fixes in a field rather
+        // than by retrying, so it goes next to the field.
+        if (message.toLowerCase().includes("slug")) {
+          setFieldErrors({ slug: message });
+          document
+            .getElementById("slug")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        toast.error(message);
         return;
       }
 
-      toast.success(`${values.name} ${isEditing ? "updated" : "created"}`);
+      // A warning means the villa saved but its removed photos are still in
+      // Storage. Say so instead of a clean "updated", and leave it up long
+      // enough to read after the navigation.
+      if (result.warning) {
+        toast.warning(result.warning, { duration: 10_000 });
+      } else {
+        toast.success(`${values.name} ${isEditing ? "updated" : "created"}`);
+      }
+
       router.push("/admin/villas");
       router.refresh();
     });
@@ -189,10 +256,16 @@ export default function VillaForm({
             <Input
               id="name"
               value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
+              onChange={(e) => {
+                handleNameChange(e.target.value);
+                clearFieldError("name");
+              }}
               placeholder="Casa Bela"
+              aria-invalid={Boolean(fieldErrors.name)}
+              aria-describedby={fieldErrors.name ? "name-error" : undefined}
               required
             />
+            <FieldError id="name-error" message={fieldErrors.name} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="slug">Slug</Label>
@@ -202,15 +275,25 @@ export default function VillaForm({
               onChange={(e) => {
                 setSlugTouched(true);
                 setSlug(slugify(e.target.value));
+                clearFieldError("slug");
               }}
               placeholder="casa-bela-candolim"
+              aria-invalid={Boolean(fieldErrors.slug)}
+              aria-describedby={fieldErrors.slug ? "slug-error" : undefined}
               required
             />
+            <FieldError id="slug-error" message={fieldErrors.slug} />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="destination">Destination</Label>
-            <Select value={destinationId} onValueChange={setDestinationId}>
+            <Select
+              value={destinationId}
+              onValueChange={(value) => {
+                setDestinationId(value);
+                clearFieldError("destination");
+              }}
+            >
               <SelectTrigger id="destination" className="w-full">
                 <SelectValue placeholder="Select a destination" />
               </SelectTrigger>
@@ -222,10 +305,15 @@ export default function VillaForm({
                 ))}
               </SelectContent>
             </Select>
-            {destinations.length === 0 && (
+            {destinations.length === 0 ? (
               <p className="text-xs text-destructive">
                 Add a destination first — villas have to belong to one.
               </p>
+            ) : (
+              <FieldError
+                id="destination-error"
+                message={fieldErrors.destination}
+              />
             )}
           </div>
           <div className="flex flex-col gap-1.5">
@@ -261,10 +349,16 @@ export default function VillaForm({
               type="number"
               min={0}
               value={pricePerNight}
-              onChange={(e) => setPricePerNight(e.target.value)}
+              onChange={(e) => {
+                setPricePerNight(e.target.value);
+                clearFieldError("price");
+              }}
               placeholder="18500"
+              aria-invalid={Boolean(fieldErrors.price)}
+              aria-describedby={fieldErrors.price ? "price-error" : undefined}
               required
             />
+            <FieldError id="price-error" message={fieldErrors.price} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="weekend-price">Weekend price (₹)</Label>

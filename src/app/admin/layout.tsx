@@ -30,6 +30,10 @@ export default async function AdminLayout({
   const current = await getCurrentUser(supabase);
 
   if (!current) redirect("/admin/login");
+
+  // Two different failures, two different messages: a lookup that errored is
+  // worth retrying, an account without the flag never will be.
+  if (current.adminCheckFailed) redirect("/admin/login?error=check-failed");
   if (!current.isAdmin) redirect("/admin/login?error=access-denied");
 
   return (

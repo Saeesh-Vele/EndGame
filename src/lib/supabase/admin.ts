@@ -4,6 +4,12 @@ import { redirect } from "next/navigation";
 export interface CurrentUser {
   user: User;
   isAdmin: boolean;
+  /**
+   * True when the profiles lookup itself failed, so `isAdmin: false` means
+   * "we couldn't check" rather than "this account isn't an admin". Callers
+   * still fail closed — but they can say which of the two happened.
+   */
+  adminCheckFailed?: boolean;
 }
 
 /**
@@ -30,8 +36,13 @@ export async function getCurrentUser(
     .maybeSingle();
 
   // A missing or unreadable profile row is treated as "not an admin" rather
-  // than an error — failing closed is the safe direction here.
-  if (error) return { user, isAdmin: false };
+  // than an error — failing closed is the safe direction here. The flag lets
+  // the caller explain a transient failure instead of telling a real admin
+  // their account has no access.
+  if (error) {
+    console.error("[admin] profile lookup failed:", error);
+    return { user, isAdmin: false, adminCheckFailed: true };
+  }
 
   return { user, isAdmin: data?.is_admin === true };
 }

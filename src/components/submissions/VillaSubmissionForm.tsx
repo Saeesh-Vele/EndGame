@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import {
   submitVillaListing,
+  type SubmissionField,
   type VillaSubmissionFormValues,
 } from "@/app/list-your-villa/actions";
 import { FEATURE_AMENITIES, UNIVERSAL_AMENITIES } from "@/lib/amenities";
@@ -57,11 +58,14 @@ function Field({
   label,
   htmlFor,
   optional,
+  error,
   children,
 }: {
   label: string;
   htmlFor: string;
   optional?: boolean;
+  /** Rendered under the input, and announced when it appears. */
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -71,9 +75,42 @@ function Field({
         {optional && <span className="ml-1.5 text-xs text-slate font-normal">optional</span>}
       </label>
       {children}
+      {error && (
+        <p
+          id={`${htmlFor}-error`}
+          role="alert"
+          className="flex items-start gap-1.5 text-xs font-medium text-destructive"
+        >
+          <AlertCircle size={13} className="mt-px shrink-0" />
+          <span>{error}</span>
+        </p>
+      )}
     </div>
   );
 }
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * Where each field lives in the DOM. The form is taller than a screen, so a
+ * rejection has to take the owner to the input rather than leaving a message
+ * somewhere they'd have to scroll to find.
+ */
+const FIELD_INPUT_ID: Partial<Record<SubmissionField, string>> = {
+  ownerName: "owner-name",
+  ownerEmail: "owner-email",
+  ownerPhone: "owner-phone",
+  villaName: "villa-name",
+  location: "villa-location",
+  destination: "villa-destination",
+  bedrooms: "villa-bedrooms",
+  bathrooms: "villa-bathrooms",
+  maxGuests: "villa-guests",
+  description: "villa-description",
+  pricePerNight: "villa-price",
+  weekendPrice: "villa-weekend",
+  message: "villa-message",
+};
 
 export default function VillaSubmissionForm({
   destinations,
@@ -83,6 +120,11 @@ export default function VillaSubmissionForm({
   const [values, setValues] = useState<VillaSubmissionFormValues>(EMPTY);
   const [destinationChoice, setDestinationChoice] = useState("");
   const [otherDestination, setOtherDestination] = useState("");
+  /** Failures that belong to one input, rendered under it. */
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<SubmissionField, string>>
+  >({});
+  /** Failures that don't — a rejected insert, a dropped connection. */
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -100,6 +142,16 @@ export default function VillaSubmissionForm({
   ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setError(null);
+    // Clear only this field's error — the others are still true.
+    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
+  };
+
+  /** Puts the cursor on the field that was rejected and scrolls it into view. */
+  const focusField = (field: SubmissionField) => {
+    const id = FIELD_INPUT_ID[field];
+    const el = id ? document.getElementById(id) : null;
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    (el as HTMLElement | null)?.focus({ preventScroll: true });
   };
 
   const toggleAmenity = (amenity: string) => {
@@ -111,6 +163,41 @@ export default function VillaSubmissionForm({
     }));
   };
 
+  /** The required-field rules the Server Action applies, run first so the
+   *  owner gets them without a round trip. The action still decides. */
+  const validate = (): Partial<Record<SubmissionField, string>> => {
+    const problems: Partial<Record<SubmissionField, string>> = {};
+
+    if (!values.ownerName.trim()) problems.ownerName = "Tell us who to talk to.";
+
+    const email = values.ownerEmail.trim();
+    if (!email) problems.ownerEmail = "We need an email address to reply to.";
+    else if (!EMAIL.test(email))
+      problems.ownerEmail = "That email doesn't look right — check for a typo.";
+
+    const phoneDigits = values.ownerPhone.replace(/\D/g, "");
+    if (!phoneDigits)
+      problems.ownerPhone =
+        "Add a WhatsApp number — it's how we arrange the property visit.";
+    else if (phoneDigits.length < 8 || phoneDigits.length > 15)
+      problems.ownerPhone =
+        "That number looks short. Include the country code.";
+
+    if (!values.villaName.trim())
+      problems.villaName = "What's the property called? A working name is fine.";
+
+    if (!values.location.trim())
+      problems.location = "Where is it? A city or area is enough.";
+
+    // "Other" with nothing typed would submit a blank destination and silently
+    // lose what the owner meant to tell us.
+    if (destinationChoice === OTHER && !otherDestination.trim())
+      problems.destination =
+        "Type the destination, or pick one from the list instead.";
+
+    return problems;
+  };
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (pending || cooldown > 0) return;
@@ -119,6 +206,25 @@ export default function VillaSubmissionForm({
       destinationChoice === OTHER ? otherDestination.trim() : destinationChoice;
 
     setError(null);
+
+    const problems = validate();
+    const order: SubmissionField[] = [
+      "ownerName",
+      "ownerEmail",
+      "ownerPhone",
+      "villaName",
+      "location",
+      "destination",
+    ];
+    const firstInvalid = order.find((field) => problems[field]);
+
+    if (firstInvalid) {
+      setFieldErrors(problems);
+      focusField(firstInvalid);
+      return;
+    }
+
+    setFieldErrors({});
 
     startTransition(async () => {
       const result = await submitVillaListing({ ...values, destination });
@@ -129,7 +235,13 @@ export default function VillaSubmissionForm({
         return;
       }
 
-      setError(result.error ?? "Couldn't send your submission.");
+      if (result.field) {
+        setFieldErrors({ [result.field]: result.error });
+        focusField(result.field);
+        return;
+      }
+
+      setError(result.error);
     });
   };
 
@@ -170,9 +282,13 @@ export default function VillaSubmissionForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <Section title="Your details" hint="So we know who to talk to.">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Full name" htmlFor="owner-name">
+          <Field label="Full name" htmlFor="owner-name" error={fieldErrors.ownerName}>
             <Input
               id="owner-name"
+              aria-invalid={Boolean(fieldErrors.ownerName)}
+              aria-describedby={
+                fieldErrors.ownerName ? "owner-name-error" : undefined
+              }
               value={values.ownerName}
               onChange={(e) => set("ownerName", e.target.value)}
               placeholder="Rhea Menon"
@@ -180,9 +296,11 @@ export default function VillaSubmissionForm({
               required
             />
           </Field>
-          <Field label="Email" htmlFor="owner-email">
+          <Field label="Email" htmlFor="owner-email" error={fieldErrors.ownerEmail}>
             <Input
               id="owner-email"
+              aria-invalid={Boolean(fieldErrors.ownerEmail)}
+              aria-describedby={fieldErrors.ownerEmail ? "owner-email-error" : undefined}
               type="email"
               value={values.ownerEmail}
               onChange={(e) => set("ownerEmail", e.target.value)}
@@ -192,9 +310,11 @@ export default function VillaSubmissionForm({
             />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Phone (WhatsApp)" htmlFor="owner-phone">
+            <Field label="Phone (WhatsApp)" htmlFor="owner-phone" error={fieldErrors.ownerPhone}>
               <Input
                 id="owner-phone"
+              aria-invalid={Boolean(fieldErrors.ownerPhone)}
+              aria-describedby={fieldErrors.ownerPhone ? "owner-phone-error" : undefined}
                 type="tel"
                 value={values.ownerPhone}
                 onChange={(e) => set("ownerPhone", e.target.value)}
@@ -212,18 +332,26 @@ export default function VillaSubmissionForm({
         hint="A rough idea is fine — we confirm everything on the visit."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Villa name" htmlFor="villa-name">
+          <Field label="Villa name" htmlFor="villa-name" error={fieldErrors.villaName}>
             <Input
               id="villa-name"
+              aria-invalid={Boolean(fieldErrors.villaName)}
+              aria-describedby={
+                fieldErrors.villaName ? "villa-name-error" : undefined
+              }
               value={values.villaName}
               onChange={(e) => set("villaName", e.target.value)}
               placeholder="Casa Alma"
               required
             />
           </Field>
-          <Field label="Location (city or area)" htmlFor="villa-location">
+          <Field label="Location (city or area)" htmlFor="villa-location" error={fieldErrors.location}>
             <Input
               id="villa-location"
+              aria-invalid={Boolean(fieldErrors.location)}
+              aria-describedby={
+                fieldErrors.location ? "villa-location-error" : undefined
+              }
               value={values.location}
               onChange={(e) => set("location", e.target.value)}
               placeholder="Assagao, North Goa"
@@ -232,12 +360,23 @@ export default function VillaSubmissionForm({
           </Field>
 
           <div className="sm:col-span-2">
-            <Field label="Destination" htmlFor="villa-destination" optional>
+            <Field label="Destination" htmlFor="villa-destination" optional error={fieldErrors.destination}>
               <select
                 id="villa-destination"
+                aria-invalid={Boolean(fieldErrors.destination)}
+                aria-describedby={
+                  fieldErrors.destination ? "villa-destination-error" : undefined
+                }
                 value={destinationChoice}
-                onChange={(e) => setDestinationChoice(e.target.value)}
-                className="h-11 min-h-[44px] w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-charcoal outline-none cursor-pointer focus-visible:border-forest focus-visible:ring-2 focus-visible:ring-forest/20"
+                onChange={(e) => {
+                  setDestinationChoice(e.target.value);
+                  setFieldErrors((prev) =>
+                    prev.destination ? { ...prev, destination: undefined } : prev
+                  );
+                }}
+                className={`h-11 min-h-[44px] w-full rounded-xl border bg-card px-4 py-2.5 text-sm text-charcoal outline-none cursor-pointer focus-visible:border-forest focus-visible:ring-2 focus-visible:ring-forest/20 ${
+                  fieldErrors.destination ? "border-destructive" : "border-input"
+                }`}
               >
                 <option value="">Select a destination</option>
                 {destinations.map((destination) => (
@@ -251,17 +390,25 @@ export default function VillaSubmissionForm({
             {destinationChoice === OTHER && (
               <Input
                 value={otherDestination}
-                onChange={(e) => setOtherDestination(e.target.value)}
+                onChange={(e) => {
+                  setOtherDestination(e.target.value);
+                  setFieldErrors((prev) =>
+                    prev.destination ? { ...prev, destination: undefined } : prev
+                  );
+                }}
                 placeholder="Which destination?"
                 aria-label="Other destination"
+                aria-invalid={Boolean(fieldErrors.destination)}
                 className="mt-2.5"
               />
             )}
           </div>
 
-          <Field label="Bedrooms" htmlFor="villa-bedrooms" optional>
+          <Field label="Bedrooms" htmlFor="villa-bedrooms" optional error={fieldErrors.bedrooms}>
             <Input
               id="villa-bedrooms"
+              aria-invalid={Boolean(fieldErrors.bedrooms)}
+              aria-describedby={fieldErrors.bedrooms ? "villa-bedrooms-error" : undefined}
               type="number"
               min={1}
               value={values.bedrooms}
@@ -269,9 +416,11 @@ export default function VillaSubmissionForm({
               placeholder="4"
             />
           </Field>
-          <Field label="Bathrooms" htmlFor="villa-bathrooms" optional>
+          <Field label="Bathrooms" htmlFor="villa-bathrooms" optional error={fieldErrors.bathrooms}>
             <Input
               id="villa-bathrooms"
+              aria-invalid={Boolean(fieldErrors.bathrooms)}
+              aria-describedby={fieldErrors.bathrooms ? "villa-bathrooms-error" : undefined}
               type="number"
               min={1}
               value={values.bathrooms}
@@ -280,9 +429,11 @@ export default function VillaSubmissionForm({
             />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Maximum guests" htmlFor="villa-guests" optional>
+            <Field label="Maximum guests" htmlFor="villa-guests" optional error={fieldErrors.maxGuests}>
               <Input
                 id="villa-guests"
+              aria-invalid={Boolean(fieldErrors.maxGuests)}
+              aria-describedby={fieldErrors.maxGuests ? "villa-guests-error" : undefined}
                 type="number"
                 min={1}
                 value={values.maxGuests}
@@ -365,9 +516,11 @@ export default function VillaSubmissionForm({
         hint="What you'd want to charge. Nothing is locked in — we'll talk it through."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Price per night (₹)" htmlFor="villa-price" optional>
+          <Field label="Price per night (₹)" htmlFor="villa-price" optional error={fieldErrors.pricePerNight}>
             <Input
               id="villa-price"
+              aria-invalid={Boolean(fieldErrors.pricePerNight)}
+              aria-describedby={fieldErrors.pricePerNight ? "villa-price-error" : undefined}
               type="number"
               min={0}
               value={values.pricePerNight}
@@ -375,9 +528,11 @@ export default function VillaSubmissionForm({
               placeholder="24000"
             />
           </Field>
-          <Field label="Weekend price (₹)" htmlFor="villa-weekend" optional>
+          <Field label="Weekend price (₹)" htmlFor="villa-weekend" optional error={fieldErrors.weekendPrice}>
             <Input
               id="villa-weekend"
+              aria-invalid={Boolean(fieldErrors.weekendPrice)}
+              aria-describedby={fieldErrors.weekendPrice ? "villa-weekend-error" : undefined}
               type="number"
               min={0}
               value={values.weekendPrice}

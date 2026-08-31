@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { describeDbError } from "@/lib/errors";
 
 interface SessionContextValue {
   /**
@@ -100,7 +101,19 @@ export default function SessionProvider({
       if (cancelled) return;
 
       // On error, settle on an empty set anyway — leaving savedReady false
-      // forever would strand the dashboard grid on its fallback.
+      // forever would strand the dashboard grid on its fallback. But say so:
+      // an empty set renders as "no saved villas yet", which is a lie when the
+      // real answer is that the read failed.
+      if (error) {
+        toast.error(
+          describeDbError(error, {
+            scope: "saved-villas:load",
+            fallback:
+              "Couldn't load your saved villas. Reload the page to try again.",
+          })
+        );
+      }
+
       setSaved({
         userId,
         ids: new Set(
@@ -165,8 +178,22 @@ export default function SessionProvider({
 
         if (!error) return;
 
+        // The heart flipped optimistically; put it back and say which way the
+        // write failed, so the reverted icon isn't a mystery.
         flip(wasSaved);
-        toast.error("Couldn't update your saved villas. Please try again.");
+        toast.error(
+          describeDbError(error, {
+            scope: "saved-villas:toggle",
+            byCode: {
+              "23503": "That villa is no longer listed, so it can't be saved.",
+              "42501": "Your session has expired. Sign in again to save villas.",
+              PGRST301: "Your session has expired. Sign in again to save villas.",
+            },
+            fallback: wasSaved
+              ? "Couldn't remove that villa from your saved list. Try again."
+              : "Couldn't save that villa. Try again.",
+          })
+        );
       };
 
       void run();
@@ -175,7 +202,21 @@ export default function SessionProvider({
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      // The local session is cleared even when the server call fails, so the
+      // UI still signs out — but a failed revoke is worth saying on a shared
+      // computer.
+      toast.error(
+        describeDbError(error, {
+          scope: "auth:signout",
+          fallback:
+            "Signed out on this device, but we couldn't reach the server to end the session everywhere.",
+        })
+      );
+    }
+
     setSaved(null);
     // Server components read the session from cookies, so they need to
     // re-render now that it's gone.

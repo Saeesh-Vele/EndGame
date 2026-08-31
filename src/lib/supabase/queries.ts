@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { VillaRates } from "@/lib/pricing";
 import {
   BookingRequest,
   BookingRequestWithVilla,
@@ -317,6 +318,45 @@ export interface CreateBookingRequestInput {
   guests: number;
   total_price: number;
   message?: string;
+}
+
+/**
+ * The rate and capacity columns the booking action prices a stay against.
+ *
+ * Deliberately narrow: this is the authoritative read that decides what a
+ * booking costs, so it selects the rate columns straight from the row rather
+ * than trusting anything the browser sent. The public select policy hides
+ * inactive villas from non-admins, so an unpublished villa comes back null —
+ * which the caller reports as "not taking requests".
+ */
+export interface VillaBookingRates extends VillaRates {
+  id: string;
+  name: string;
+  max_guests: number;
+}
+
+export async function getVillaBookingRates(
+  client: SupabaseClient,
+  villaId: string
+): Promise<VillaBookingRates | null> {
+  const { data, error } = await client
+    .from("villas")
+    .select("id, name, price_per_night, weekend_price, max_guests")
+    .eq("id", villaId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    id: data.id as string,
+    name: data.name as string,
+    price_per_night: Number(data.price_per_night),
+    weekend_price:
+      data.weekend_price != null ? Number(data.weekend_price) : undefined,
+    max_guests: Number(data.max_guests),
+  };
 }
 
 /**

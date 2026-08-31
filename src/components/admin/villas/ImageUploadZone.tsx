@@ -6,6 +6,7 @@ import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { uploadVillaImage } from "@/lib/supabase/storage";
+import { describeUploadError } from "@/lib/errors";
 
 const MAX_IMAGES = 10;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -36,24 +37,48 @@ export default function ImageUploadZone({
   const addFiles = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
-    const candidates = Array.from(fileList).filter((file) =>
-      file.type.startsWith("image/")
-    );
+    const chosen = Array.from(fileList);
+    const candidates = chosen.filter((file) => file.type.startsWith("image/"));
+
+    // Dropping a PDF or a .mov used to do nothing at all, which reads as the
+    // uploader being broken.
+    const notImages = chosen.length - candidates.length;
+    if (notImages > 0) {
+      toast.error(
+        notImages === 1
+          ? "That file isn't an image — upload a JPG, PNG, or WebP."
+          : `${notImages} files weren't images and were skipped. Upload JPG, PNG, or WebP.`
+      );
+    }
 
     const tooLarge = candidates.filter((file) => file.size > MAX_FILE_BYTES);
     if (tooLarge.length > 0) {
       toast.error(
-        `${tooLarge.length === 1 ? "That photo is" : "Some photos are"} over 10MB.`
+        tooLarge.length === 1
+          ? `${tooLarge[0].name} is over 10MB. Compress it and try again.`
+          : `${tooLarge.length} photos are over 10MB and were skipped. Compress them and try again.`
       );
     }
 
-    const files = candidates
-      .filter((file) => file.size <= MAX_FILE_BYTES)
-      .slice(0, MAX_IMAGES - images.length);
+    const withinLimits = candidates.filter(
+      (file) => file.size <= MAX_FILE_BYTES
+    );
+    const room = MAX_IMAGES - images.length;
+    const files = withinLimits.slice(0, room);
+
+    // Say what happened to the ones that didn't fit, rather than uploading a
+    // subset silently.
+    if (withinLimits.length > files.length) {
+      toast.error(
+        `Only ${room} more ${room === 1 ? "photo fits" : "photos fit"} — this villa is capped at ${MAX_IMAGES}. The rest were skipped.`
+      );
+    }
 
     if (files.length === 0) {
       if (images.length >= MAX_IMAGES) {
-        toast.error(`You can upload up to ${MAX_IMAGES} photos.`);
+        toast.error(
+          `This villa already has the maximum of ${MAX_IMAGES} photos. Remove one to add another.`
+        );
       }
       return;
     }
@@ -72,12 +97,13 @@ export default function ImageUploadZone({
       )
       .map((result) => result.value);
 
-    const failed = results.length - uploaded.length;
-    if (failed > 0) {
-      toast.error(
-        `${failed} ${failed === 1 ? "photo" : "photos"} failed to upload.`
-      );
-    }
+    // "3 photos failed to upload" doesn't tell an admin whether to retry,
+    // sign in again, or pick a different file. Name the file and the reason.
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        toast.error(describeUploadError(result.reason, files[index].name));
+      }
+    });
 
     if (uploaded.length > 0) onChange([...images, ...uploaded]);
     setUploading(0);

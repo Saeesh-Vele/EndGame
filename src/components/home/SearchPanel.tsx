@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Calendar, Users, Search } from "lucide-react";
+import { AlertCircle, MapPin, Calendar, Users, Search } from "lucide-react";
 import DestinationAutocomplete, {
   type DestinationOption,
 } from "@/components/shared/DestinationAutocomplete";
@@ -20,9 +20,16 @@ export default function SearchPanel({
   const today = useTodayISO();
 
   const [destination, setDestination] = useState("");
+  /** What's typed in the destination box but hasn't resolved to a real one. */
+  const [destinationDraft, setDestinationDraft] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState("");
+  const [errors, setErrors] = useState<{
+    destination?: string;
+    dates?: string;
+    guests?: string;
+  }>({});
 
   const options = useMemo<DestinationOption[]>(
     () =>
@@ -38,17 +45,43 @@ export default function SearchPanel({
   const handleCheckInChange = (value: string) => {
     setCheckIn(value);
     if (checkOut && value && checkOut <= value) setCheckOut("");
+    setErrors((prev) => ({ ...prev, dates: undefined }));
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+
+    const next: typeof errors = {};
+
+    // Typed text that never matched a destination used to be dropped on the
+    // floor: the search ran across every villa as if the box were empty.
+    const typed = destinationDraft?.trim() ?? "";
+    if (typed && !destination) {
+      next.destination = `We don't list villas in “${typed}” yet. Pick a destination from the list, or clear the box to see everywhere.`;
+    }
+
+    if (checkIn && checkOut && checkOut <= checkIn) {
+      next.dates = "Check-out has to be after check-in.";
+    }
+
+    const trimmedGuests = guests.trim();
+    const guestCount = Number.parseInt(trimmedGuests, 10);
+    if (trimmedGuests && (!Number.isFinite(guestCount) || guestCount < 1)) {
+      next.guests = "Enter how many guests are staying — 1 or more.";
+    }
+
+    if (next.destination || next.dates || next.guests) {
+      setErrors(next);
+      return;
+    }
+
+    setErrors({});
 
     const params = new URLSearchParams();
     if (destination) params.set("destination", destination);
     if (checkIn) params.set("checkIn", checkIn);
     if (checkOut) params.set("checkOut", checkOut);
 
-    const guestCount = Number.parseInt(guests, 10);
     if (Number.isFinite(guestCount) && guestCount > 0) {
       params.set("guests", String(guestCount));
     }
@@ -74,7 +107,16 @@ export default function SearchPanel({
                 inputId="search-where"
                 options={options}
                 value={destination}
-                onChange={setDestination}
+                onChange={(slug) => {
+                  setDestination(slug);
+                  setErrors((prev) => ({ ...prev, destination: undefined }));
+                }}
+                onDraftChange={(draft) => {
+                  setDestinationDraft(draft);
+                  setErrors((prev) => ({ ...prev, destination: undefined }));
+                }}
+                invalid={Boolean(errors.destination)}
+                describedBy={errors.destination ? "search-where-error" : undefined}
                 placeholder="Search destinations"
                 inputClassName="text-sm text-charcoal placeholder:text-slate bg-transparent outline-none w-full"
               />
@@ -107,7 +149,11 @@ export default function SearchPanel({
                 type="date"
                 value={checkOut}
                 min={checkIn || today}
-                onChange={(e) => setCheckOut(e.target.value)}
+                aria-invalid={Boolean(errors.dates)}
+                onChange={(e) => {
+                  setCheckOut(e.target.value);
+                  setErrors((prev) => ({ ...prev, dates: undefined }));
+                }}
                 className="text-sm text-charcoal bg-transparent outline-none w-full min-w-0 cursor-pointer"
               />
             </span>
@@ -123,7 +169,11 @@ export default function SearchPanel({
                 type="number"
                 min={1}
                 value={guests}
-                onChange={(e) => setGuests(e.target.value)}
+                aria-invalid={Boolean(errors.guests)}
+                onChange={(e) => {
+                  setGuests(e.target.value);
+                  setErrors((prev) => ({ ...prev, guests: undefined }));
+                }}
                 placeholder="Add guests"
                 className="text-sm text-charcoal placeholder:text-slate bg-transparent outline-none w-full min-w-0"
               />
@@ -139,6 +189,23 @@ export default function SearchPanel({
             <span>Search</span>
           </Button>
         </form>
+
+        {(errors.destination || errors.dates || errors.guests) && (
+          <div
+            id="search-where-error"
+            role="alert"
+            className="mx-3 mb-1 mt-1 flex flex-col gap-1 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-xs font-medium text-destructive"
+          >
+            {[errors.destination, errors.dates, errors.guests]
+              .filter(Boolean)
+              .map((message) => (
+                <p key={message} className="flex items-start gap-1.5">
+                  <AlertCircle size={13} className="mt-px shrink-0" />
+                  <span>{message}</span>
+                </p>
+              ))}
+          </div>
+        )}
       </Card>
     </div>
   );

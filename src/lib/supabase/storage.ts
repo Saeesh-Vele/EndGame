@@ -73,9 +73,46 @@ export function storagePathFromUrl(url: string): string | null {
 }
 
 /**
- * Best-effort cleanup of images that are no longer referenced by a villa.
- * Storage failures are swallowed: an orphaned object is a much smaller
- * problem than a villa edit that appears to fail after the row already saved.
+ * Thrown when objects that should have been removed are still in the bucket.
+ *
+ * Carries the paths so the failure can be logged precisely, and `count` so the
+ * caller can phrase a message without re-deriving it. Separate from a plain
+ * Error because callers treat it differently from a failed write: the villa
+ * row has already been saved or deleted by the time this can throw, so it
+ * degrades a success into a success-with-a-warning, never into a failure.
+ */
+export class VillaImageCleanupError extends Error {
+  readonly paths: string[];
+  readonly cause: unknown;
+
+  constructor(paths: string[], cause: unknown) {
+    super(
+      `Failed to remove ${paths.length} object(s) from ${VILLA_IMAGES_BUCKET}: ${paths.join(", ")}`
+    );
+    this.name = "VillaImageCleanupError";
+    this.paths = paths;
+    this.cause = cause;
+  }
+
+  get count(): number {
+    return this.paths.length;
+  }
+}
+
+/**
+ * Removes images that are no longer referenced by a villa.
+ *
+ * This used to swallow every storage failure, on the reasoning that an
+ * orphaned object is a smaller problem than an edit that looks like it failed.
+ * The orphan is still the smaller problem — but silence meant nobody ever
+ * learned the bucket was accumulating them, and a failure here is usually an
+ * expired admin session, which is worth telling the admin about. So it throws
+ * VillaImageCleanupError and lets the caller decide; the callers in
+ * src/app/admin/actions.ts turn it into a warning on an otherwise successful
+ * result rather than reporting the save as failed.
+ *
+ * URLs that don't point at our bucket (the seed data links to Unsplash) are
+ * skipped, not failed.
  */
 export async function deleteVillaImagesByUrl(
   client: SupabaseClient,
@@ -87,5 +124,20 @@ export async function deleteVillaImagesByUrl(
 
   if (paths.length === 0) return;
 
-  await client.storage.from(VILLA_IMAGES_BUCKET).remove(paths);
+  let error: unknown;
+
+  try {
+    ({ error } = await client.storage.from(VILLA_IMAGES_BUCKET).remove(paths));
+  } catch (thrown) {
+    // A dropped connection rejects rather than returning an error.
+    error = thrown;
+  }
+
+  if (error) {
+    console.error(
+      `[storage] could not remove ${paths.length} object(s) from ${VILLA_IMAGES_BUCKET}:`,
+      { paths, urls, error }
+    );
+    throw new VillaImageCleanupError(paths, error);
+  }
 }

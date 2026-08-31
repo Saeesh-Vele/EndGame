@@ -15,6 +15,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const ERRORS: Record<string, string> = {
+  "access-denied":
+    "That account is valid but has no admin access. Ask an existing admin to grant it.",
+  "check-failed":
+    "We couldn't verify your admin access just now — the database didn't answer. Sign in again in a moment.",
+};
+
 export default async function AdminLoginPage({
   searchParams,
 }: {
@@ -49,13 +56,7 @@ export default async function AdminLoginPage({
           </div>
 
           <div className="mt-8 rounded-2xl border border-pebble bg-white p-6 sm:p-7">
-            <LoginForm
-              initialError={
-                error === "access-denied"
-                  ? "That account doesn't have admin access."
-                  : undefined
-              }
-            />
+            <LoginForm initialError={error ? ERRORS[error] : undefined} />
           </div>
 
           <p className="mt-5 text-center text-xs text-slate leading-relaxed">

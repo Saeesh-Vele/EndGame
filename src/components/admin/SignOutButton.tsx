@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { LogOut } from "lucide-react";
+import { toast } from "sonner";
 import { signOutAction } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 
@@ -14,7 +15,20 @@ export default function SignOutButton({
 }) {
   const [pending, startTransition] = useTransition();
 
-  const handleClick = () => startTransition(() => void signOutAction());
+  const handleClick = () =>
+    startTransition(async () => {
+      try {
+        await signOutAction();
+      } catch (error) {
+        // A successful sign-out never reaches here — redirect() unwinds the
+        // action. Anything that does is a genuine failure, and without this
+        // the button would just stop spinning with the admin still signed in.
+        console.error("[admin] sign out failed:", error);
+        toast.error(
+          "Couldn't sign you out — the server didn't respond. Try again in a moment."
+        );
+      }
+    });
 
   if (compact) {
     return (

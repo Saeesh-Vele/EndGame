@@ -26,6 +26,9 @@ export default function DestinationAutocomplete({
   inputId,
   inputClassName = "",
   ariaLabel = "Destination",
+  onDraftChange,
+  invalid = false,
+  describedBy,
 }: {
   options: DestinationOption[];
   /** Slug of the selected destination, or "" for none. */
@@ -35,6 +38,14 @@ export default function DestinationAutocomplete({
   inputId?: string;
   inputClassName?: string;
   ariaLabel?: string;
+  /**
+   * Text the user has typed but not committed, or null once it resolves to a
+   * selection. A parent that submits (the homepage search) needs this to tell
+   * "typed something we don't have" apart from "typed nothing".
+   */
+  onDraftChange?: (draft: string | null) => void;
+  invalid?: boolean;
+  describedBy?: string;
 }) {
   const generatedId = useId();
   const fieldId = inputId ?? generatedId;
@@ -50,7 +61,12 @@ export default function DestinationAutocomplete({
   // copying the selection into state with an effect means picking an option,
   // clearing, reverting a bad entry, and an external change (URL params,
   // sidebar checkboxes) all fall out of one rule: clear the draft.
-  const [draft, setDraft] = useState<string | null>(null);
+  const [draft, setDraftState] = useState<string | null>(null);
+
+  const setDraft = (next: string | null) => {
+    setDraftState(next);
+    onDraftChange?.(next);
+  };
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,6 +191,8 @@ export default function DestinationAutocomplete({
             : undefined
         }
         aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         autoComplete="off"
         value={query}
         placeholder={placeholder}

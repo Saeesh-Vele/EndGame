@@ -81,7 +81,13 @@ export default function VillasTable({
     startTransition(async () => {
       const result = await deleteVilla(villa.id);
       if (result.success) {
-        toast.success(`${villa.name} deleted`);
+        // The row is gone either way; a warning means its photos are still
+        // sitting in the bucket, which the admin needs to know about.
+        if (result.warning) {
+          toast.warning(result.warning, { duration: 10_000 });
+        } else {
+          toast.success(`${villa.name} deleted`);
+        }
         router.refresh();
       } else {
         toast.error(result.error ?? "Couldn't delete the villa.");

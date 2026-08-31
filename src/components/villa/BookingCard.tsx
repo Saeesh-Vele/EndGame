@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { MessageCircle, Minus, Plus, ShieldCheck, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   logWhatsappInquiry,
   submitBookingRequest,
+  type BookingField,
 } from "@/app/villas/[slug]/actions";
 import { useSession } from "@/components/shared/SessionProvider";
+import { quoteStay } from "@/lib/pricing";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,47 +17,28 @@ function formatINR(amount: number) {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
+/** Message under a single input. Renders nothing when the field is fine. */
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+
+  return (
+    <p
+      id={id}
+      role="alert"
+      className="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-destructive"
+    >
+      <AlertCircle size={13} className="mt-px shrink-0" />
+      <span>{message}</span>
+    </p>
+  );
+}
+
 function formatDisplayDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
-}
-
-function calcPricing(
-  checkIn: string,
-  checkOut: string,
-  basePrice: number,
-  weekendPrice?: number
-) {
-  if (!checkIn || !checkOut) return null;
-
-  const start = new Date(checkIn);
-  const end = new Date(checkOut);
-  const nights = Math.round((end.getTime() - start.getTime()) / 86_400_000);
-  if (nights <= 0) return null;
-
-  let weekendNights = 0;
-  if (weekendPrice) {
-    for (let i = 0; i < nights; i++) {
-      const day = new Date(start.getTime() + i * 86_400_000).getDay();
-      if (day === 5 || day === 6) weekendNights++;
-    }
-  }
-
-  const baseSubtotal = nights * basePrice;
-  const weekendSurcharge = weekendPrice
-    ? weekendNights * (weekendPrice - basePrice)
-    : 0;
-
-  return {
-    nights,
-    weekendNights,
-    baseSubtotal,
-    weekendSurcharge,
-    total: baseSubtotal + weekendSurcharge,
-  };
 }
 
 export default function BookingCard({
@@ -84,13 +67,17 @@ export default function BookingCard({
   const [guestEmailInput, setGuestEmail] = useState<string | null>(null);
   const [guestPhone, setGuestPhone] = useState("");
   const [requestSent, setRequestSent] = useState(false);
+  // Errors the form can't pin to one input (a failed insert, a dead session).
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{
-    name?: boolean;
-    email?: boolean;
-    phone?: boolean;
-  }>({});
+  // Errors that belong to a specific input, rendered under it.
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<BookingField, string>>
+  >({});
   const [isPending, startTransition] = useTransition();
+
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
 
   const { user } = useSession();
 
@@ -102,8 +89,15 @@ export default function BookingCard({
   const guestName = guestNameInput ?? prefillName;
   const guestEmail = guestEmailInput ?? user?.email ?? "";
 
+  // The same function the Server Action prices with, over the same rates —
+  // this breakdown is a preview of what the server will compute, not an input
+  // to it. Nothing here is sent with the request.
   const pricing = useMemo(
-    () => calcPricing(checkIn, checkOut, pricePerNight, weekendPrice),
+    () =>
+      quoteStay(checkIn, checkOut, {
+        price_per_night: pricePerNight,
+        weekend_price: weekendPrice,
+      }),
     [checkIn, checkOut, pricePerNight, weekendPrice]
   );
 
@@ -138,17 +132,58 @@ export default function BookingCard({
     resetRequestState();
   };
 
+  /** Only the three guest inputs can hold a message; dates and guest count
+   *  are pickers, so their problems go in the banner above the button. */
+  const inputRefs: Record<
+    "name" | "email" | "phone",
+    React.RefObject<HTMLInputElement | null>
+  > = { name: nameRef, email: emailRef, phone: phoneRef };
+
+  const isInputField = (
+    field: BookingField
+  ): field is "name" | "email" | "phone" =>
+    field === "name" || field === "email" || field === "phone";
+
+  const focusField = (field: "name" | "email" | "phone") => {
+    inputRefs[field].current?.focus();
+  };
+
   const handleRequest = () => {
-    if (!pricing) return;
+    if (!pricing) {
+      setErrorMessage("Pick a check-in and a check-out date first.");
+      return;
+    }
 
-    const errors: { name?: boolean; email?: boolean; phone?: boolean } = {};
-    if (!guestName.trim()) errors.name = true;
-    if (!guestEmail.trim() || !guestEmail.includes("@")) errors.email = true;
-    if (!guestPhone.trim() || guestPhone.trim().length < 8) errors.phone = true;
+    // Each field says what's actually wrong with it — "complete all required
+    // information" makes the guest re-check three inputs to find the one typo.
+    const errors: Partial<Record<BookingField, string>> = {};
 
-    if (Object.keys(errors).length > 0) {
+    if (!guestName.trim()) {
+      errors.name = "Enter the name the booking is under.";
+    }
+
+    const email = guestEmail.trim();
+    if (!email) {
+      errors.email = "Enter an email so the host can confirm.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      errors.email = "That email doesn't look right — check for a typo.";
+    }
+
+    const phoneDigits = guestPhone.replace(/\D/g, "");
+    if (!phoneDigits) {
+      errors.phone = "Enter a phone number the host can reach you on.";
+    } else if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+      errors.phone = "That number looks short. Include the country code.";
+    }
+
+    const firstInvalid = (["name", "email", "phone"] as const).find(
+      (field) => errors[field]
+    );
+
+    if (firstInvalid) {
       setFieldErrors(errors);
-      setErrorMessage("Please complete all required guest information correctly.");
+      setErrorMessage(null);
+      focusField(firstInvalid);
       return;
     }
 
@@ -161,17 +196,25 @@ export default function BookingCard({
         checkIn,
         checkOut,
         guests,
-        totalPrice: pricing.total,
         guestName: guestName.trim(),
-        guestEmail: guestEmail.trim(),
+        guestEmail: email,
         guestPhone: guestPhone.trim(),
       });
 
       if (result.success) {
         setRequestSent(true);
-      } else {
-        setErrorMessage(result.error ?? "Something went wrong. Please try again.");
+        return;
       }
+
+      // The action re-checks everything the form does, so a rejection can
+      // still name a field — put it back where the guest can fix it.
+      if (result.field && isInputField(result.field)) {
+        setFieldErrors({ [result.field]: result.error });
+        focusField(result.field);
+        return;
+      }
+
+      setErrorMessage(result.error);
     });
   };
 
@@ -273,6 +316,8 @@ export default function BookingCard({
           <div className="mt-4 flex flex-col gap-2.5">
             <div className="relative">
               <Input
+                ref={nameRef}
+                id="booking-name"
                 type="text"
                 value={guestName}
                 onChange={(e) => {
@@ -280,36 +325,54 @@ export default function BookingCard({
                   resetRequestState();
                 }}
                 placeholder="Full name *"
-                aria-invalid={fieldErrors.name}
+                aria-invalid={Boolean(fieldErrors.name)}
+                aria-describedby={fieldErrors.name ? "booking-name-error" : undefined}
                 aria-label="Full name"
                 className={fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              <FieldError id="booking-name-error" message={fieldErrors.name} />
             </div>
             <div className="grid grid-cols-2 gap-2.5">
-              <Input
-                type="email"
-                value={guestEmail}
-                onChange={(e) => {
-                  setGuestEmail(e.target.value);
-                  resetRequestState();
-                }}
-                placeholder="Email *"
-                aria-invalid={fieldErrors.email}
-                aria-label="Email address"
-                className={fieldErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
-              />
-              <Input
-                type="tel"
-                value={guestPhone}
-                onChange={(e) => {
-                  setGuestPhone(e.target.value);
-                  resetRequestState();
-                }}
-                placeholder="Phone *"
-                aria-invalid={fieldErrors.phone}
-                aria-label="Phone number"
-                className={fieldErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
-              />
+              <div>
+                <Input
+                  ref={emailRef}
+                  id="booking-email"
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => {
+                    setGuestEmail(e.target.value);
+                    resetRequestState();
+                  }}
+                  placeholder="Email *"
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={
+                    fieldErrors.email ? "booking-email-error" : undefined
+                  }
+                  aria-label="Email address"
+                  className={fieldErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                <FieldError id="booking-email-error" message={fieldErrors.email} />
+              </div>
+              <div>
+                <Input
+                  ref={phoneRef}
+                  id="booking-phone"
+                  type="tel"
+                  value={guestPhone}
+                  onChange={(e) => {
+                    setGuestPhone(e.target.value);
+                    resetRequestState();
+                  }}
+                  placeholder="Phone *"
+                  aria-invalid={Boolean(fieldErrors.phone)}
+                  aria-describedby={
+                    fieldErrors.phone ? "booking-phone-error" : undefined
+                  }
+                  aria-label="Phone number"
+                  className={fieldErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                <FieldError id="booking-phone-error" message={fieldErrors.phone} />
+              </div>
             </div>
           </div>
         )}
