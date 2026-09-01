@@ -43,6 +43,8 @@ export default function ContactForm() {
   /** Failures that don't — a rejected insert, a dropped connection. */
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  /** The address we confirmed to — the form itself is cleared on success. */
+  const [sentTo, setSentTo] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const [pending, startTransition] = useTransition();
 
@@ -65,6 +67,9 @@ export default function ContactForm() {
   const set = (key: ContactField, value: string) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setError(null);
+    // The confirmation is about the message that was sent, not the one being
+    // typed now — leaving it up makes the next draft look already delivered.
+    setSent(false);
     // Clear only this field's error — the others are still true.
     setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
   };
@@ -118,6 +123,7 @@ export default function ContactForm() {
       const result = await submitContactMessage(values);
 
       if (result.success) {
+        setSentTo(values.email.trim());
         setValues(EMPTY);
         setSent(true);
         setCooldown(COOLDOWN_SECONDS);
@@ -136,9 +142,15 @@ export default function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {sent && (
-        <div className="flex items-start gap-2.5 rounded-xl border border-forest/25 bg-forest/5 px-4 py-3.5 text-sm text-forest font-medium">
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-xl border border-forest/25 bg-forest/5 px-4 py-3.5 text-sm text-forest font-medium"
+        >
           <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
-          <span>Thanks! We&apos;ll get back to you within 24 hours.</span>
+          <span>
+            Message sent — thanks! We&apos;ll reply to{" "}
+            <span className="text-charcoal">{sentTo}</span> within 24 hours.
+          </span>
         </div>
       )}
 

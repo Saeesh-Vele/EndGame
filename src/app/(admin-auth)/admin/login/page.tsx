@@ -22,12 +22,16 @@ const ERRORS: Record<string, string> = {
     "We couldn't verify your admin access just now — the database didn't answer. Sign in again in a moment.",
 };
 
+const NOTICES: Record<string, string> = {
+  "admin-signed-out": "You're signed out of the admin area.",
+};
+
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; notice?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, notice } = await searchParams;
 
   return (
     <div className="min-h-screen bg-linen flex flex-col">
@@ -56,7 +60,10 @@ export default async function AdminLoginPage({
           </div>
 
           <div className="mt-8 rounded-2xl border border-pebble bg-white p-6 sm:p-7">
-            <LoginForm initialError={error ? ERRORS[error] : undefined} />
+            <LoginForm
+              initialError={error ? ERRORS[error] : undefined}
+              initialNotice={notice ? NOTICES[notice] : undefined}
+            />
           </div>
 
           <p className="mt-5 text-center text-xs text-slate leading-relaxed">

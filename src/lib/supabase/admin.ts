@@ -61,5 +61,7 @@ export async function isAdmin(client: SupabaseClient): Promise<boolean> {
  */
 export async function signOut(client: SupabaseClient): Promise<never> {
   await client.auth.signOut();
-  redirect("/admin/login");
+  // The notice is what confirms it worked — otherwise the admin just finds
+  // themselves back at a login form, which is also what a failure looks like.
+  redirect("/admin/login?notice=admin-signed-out");
 }

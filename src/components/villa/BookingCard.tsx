@@ -203,6 +203,10 @@ export default function BookingCard({
 
       if (result.success) {
         setRequestSent(true);
+        // On a phone the button that was just pressed sits in the fixed bar
+        // at the bottom, with the confirmation rendered above the fold line —
+        // bring it into view rather than leaving the tap unanswered.
+        requestAnimationFrame(scrollToCard);
         return;
       }
 
@@ -219,10 +223,9 @@ export default function BookingCard({
   };
 
   const scrollToCard = () => {
-    const cardEl = document.getElementById("booking-card");
-    if (cardEl) {
-      cardEl.scrollIntoView({ behavior: "smooth" });
-    }
+    document
+      .getElementById("booking-card")
+      ?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -391,7 +394,10 @@ export default function BookingCard({
 
         {/* Confirmation State Card */}
         {requestSent ? (
-          <Card className="mt-5 p-5 bg-forest/10 border border-forest/20 rounded-xl flex flex-col gap-3">
+          <Card
+            role="status"
+            className="mt-5 p-5 bg-forest/10 border border-forest/20 rounded-xl flex flex-col gap-3"
+          >
             <div className="flex items-center gap-2 text-forest font-semibold text-sm">
               <CheckCircle2 size={18} className="shrink-0 text-forest" />
               <span>Booking Request Received</span>
@@ -476,18 +482,31 @@ export default function BookingCard({
           <span className="text-xs text-slate ml-1">/ night</span>
           {pricing && (
             <p className="text-xs font-semibold text-forest mt-0.5">
-              Total: {formatINR(pricing.total)} ({pricing.nights}n)
+              {requestSent ? "Requested" : "Total"}: {formatINR(pricing.total)} (
+              {pricing.nights}n)
             </p>
           )}
         </div>
 
+        {/* Left saying "Request to book", this bar was inviting a second
+            request while the confirmation sat off-screen above it. */}
         <Button
           type="button"
           size="lg"
+          variant={requestSent ? "outline" : "default"}
           onClick={scrollToCard}
           className="px-6 font-semibold shadow-sm min-h-[44px]"
         >
-          {canRequest ? "Request to book" : "Check dates"}
+          {requestSent ? (
+            <>
+              <CheckCircle2 size={16} />
+              Request sent
+            </>
+          ) : canRequest ? (
+            "Request to book"
+          ) : (
+            "Check dates"
+          )}
         </Button>
       </div>
     </>

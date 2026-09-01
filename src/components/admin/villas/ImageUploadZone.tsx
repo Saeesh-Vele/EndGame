@@ -105,7 +105,18 @@ export default function ImageUploadZone({
       }
     });
 
-    if (uploaded.length > 0) onChange([...images, ...uploaded]);
+    // The thumbnails appearing is the main confirmation, but when part of a
+    // batch fails the only message used to be the error — leaving it unclear
+    // that anything landed at all.
+    if (uploaded.length > 0) {
+      onChange([...images, ...uploaded]);
+      toast.success(
+        uploaded.length === 1
+          ? "Photo uploaded. Save the villa to keep it."
+          : `${uploaded.length} photos uploaded. Save the villa to keep them.`
+      );
+    }
+
     setUploading(0);
   };
 

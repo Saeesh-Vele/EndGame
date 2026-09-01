@@ -247,7 +247,7 @@ export default function VillaSubmissionForm({
 
   if (submitted) {
     return (
-      <Card className="p-8 sm:p-10 text-center shadow-sm">
+      <Card role="status" className="p-8 sm:p-10 text-center shadow-sm">
         <CheckCircle2 size={40} className="mx-auto text-forest" />
         <h2 className="mt-4 font-display text-3xl text-charcoal">
           Thanks! We&apos;ll review your property and get back within 48 hours.

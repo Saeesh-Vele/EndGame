@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, DM_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import SessionProvider from "@/components/shared/SessionProvider";
+import FlashNotice from "@/components/shared/FlashNotice";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -61,6 +63,11 @@ export default function RootLayout({
             the provider itself is a client component — `children` are passed
             through as-is and stay server components. */}
         <SessionProvider>{children}</SessionProvider>
+        {/* Confirmations for flows that end in a redirect. Suspense because
+            it reads search params, which statically rendered pages defer. */}
+        <Suspense fallback={null}>
+          <FlashNotice />
+        </Suspense>
         <Toaster />
       </body>
     </html>

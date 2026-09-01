@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return NextResponse.redirect(new URL(next, origin));
+      // Landing silently on the dashboard leaves people wondering whether the
+      // link worked. `notice` is picked up by FlashNotice in the root layout,
+      // which announces it and strips it from the URL.
+      const destination = new URL(next, origin);
+      destination.searchParams.set("notice", "email-confirmed");
+      return NextResponse.redirect(destination);
     }
   }
 

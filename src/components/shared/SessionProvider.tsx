@@ -165,6 +165,9 @@ export default function SessionProvider({
       flip(!wasSaved);
 
       const run = async () => {
+        // The heart flips instantly, but on a dense grid it's easy to miss
+        // which card moved. One toast id so rapid toggling replaces rather
+        // than stacks.
         const { error } = wasSaved
           ? await supabase
               .from("saved_villas")
@@ -176,7 +179,13 @@ export default function SessionProvider({
               { onConflict: "user_id,villa_id", ignoreDuplicates: true }
             );
 
-        if (!error) return;
+        if (!error) {
+          toast.success(
+            wasSaved ? "Removed from your saved villas." : "Saved to your villas.",
+            { id: "saved-villas", duration: 2000 }
+          );
+          return;
+        }
 
         // The heart flipped optimistically; put it back and say which way the
         // write failed, so the reverted icon isn't a mystery.
@@ -218,6 +227,11 @@ export default function SessionProvider({
     }
 
     setSaved(null);
+
+    // Signing out navigates home, which on its own is indistinguishable from
+    // a misclick. Say it happened.
+    if (!error) toast.success("You're signed out.", { id: "signed-out" });
+
     // Server components read the session from cookies, so they need to
     // re-render now that it's gone.
     router.refresh();

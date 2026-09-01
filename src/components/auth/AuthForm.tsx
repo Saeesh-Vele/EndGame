@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { AlertCircle, MailCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -190,6 +191,14 @@ export default function AuthForm({
           return;
         }
       }
+
+      // Fired before navigating: the toaster lives in the root layout, so it
+      // survives the route change, and the destination (a villa page, the
+      // dashboard) otherwise gives no sign that signing in is what happened.
+      toast.success(
+        isSignup ? "Account created — you're signed in." : "Signed in — welcome back.",
+        { id: "signed-in" }
+      );
 
       router.replace(redirectTo);
       // Server components read the session from cookies — re-render them now

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,20 +12,27 @@ import { describeAuthError, describeDbError } from "@/lib/errors";
 
 export default function LoginForm({
   initialError,
+  initialNotice,
 }: {
   initialError?: string;
+  /** Confirmation carried over from a redirect, e.g. after signing out. */
+  initialNotice?: string;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | undefined>(initialError);
   const [pending, setPending] = useState(false);
+  // Cleared as soon as they start signing in again — a stale "you're signed
+  // out" above a half-filled form reads as the current state.
+  const [notice, setNotice] = useState<string | undefined>(initialNotice);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (pending) return;
 
     setError(undefined);
+    setNotice(undefined);
     setPending(true);
 
     try {
@@ -80,6 +88,8 @@ export default function LoginForm({
         return;
       }
 
+      toast.success("Signed in. Welcome back.", { id: "admin-signed-in" });
+
       // refresh() so the server components behind /admin re-render with the
       // session cookie that was just written.
       router.replace("/admin");
@@ -98,6 +108,16 @@ export default function LoginForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {notice && !error && (
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-xl border border-forest/25 bg-forest/5 px-3.5 py-3 text-sm font-medium text-forest"
+        >
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+          <span>{notice}</span>
+        </div>
+      )}
+
       {error && (
         <div
           role="alert"
